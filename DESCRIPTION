@@ -1,0 +1,13 @@
+Package: zstdlite
+Type: Package
+Title: Simple Zstd Compression
+Version: 0.1.0
+Author: mikefc
+Maintainer: mikefc <mikefc@coolbutuseless.com>
+Description: In memory compression of simple vectors using zstd.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.0
+Suggests: 
+    testthat
