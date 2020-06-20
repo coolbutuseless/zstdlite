@@ -39,4 +39,3 @@ zstd_decompress <- function(raw_vec) {
   .Call(zstd_decompress_, raw_vec)
 }
 
-

@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
-Title: Simple Zstd Compression
-Version: 0.1.0
+Title: In-memory Compression of Numeric Vectors with Zstandard
+Version: 0.1.1
 Author: mikefc
 Maintainer: mikefc <mikefc@coolbutuseless.com>
 Description: In memory compression of simple vectors using zstd.

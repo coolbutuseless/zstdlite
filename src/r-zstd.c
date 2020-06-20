@@ -144,8 +144,10 @@ SEXP zstd_decompress_(SEXP src_) {
           src[0], src[1], src[2]);
   }
 
-  /* Find the number of bytes of compressed data in src (subtract header) */
-  int compressedSize = length(src_) - 4;
+  // Find the number of bytes of compressed data in the frame
+  // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
+  int compressedSize = ZSTD_findFrameCompressedSize(src + 4, length(src_));
+
 
   /* Determine the total number of decompressed bytes final decompressed size */
   int dstCapacity = (int)ZSTD_getFrameContentSize(src + 4, compressedSize);

@@ -94,13 +94,13 @@ res <- bench::mark(
 
 | package  | expression                                                 |  median | itr/sec |  MB/s | compression\_ratio |
 | :------- | :--------------------------------------------------------- | ------: | ------: | ----: | -----------------: |
-| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 15.17ms |      65 | 251.5 |              0.150 |
-| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 15.22ms |      66 | 250.6 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.94ms |      67 | 255.3 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 10)                    |  92.7ms |      11 |  41.1 |              0.106 |
-| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.51s |       0 |   1.5 |              0.076 |
-| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.54ms |     153 | 583.5 |              0.306 |
-| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.38s |       0 |   0.3 |              0.122 |
+| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 14.97ms |      66 | 254.8 |              0.150 |
+| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 15.18ms |      65 | 251.3 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.86ms |      67 | 256.6 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 95.12ms |      10 |  40.1 |              0.106 |
+| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.47s |       0 |   1.5 |              0.076 |
+| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.55ms |     152 | 582.2 |              0.306 |
+| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.36s |       0 |   0.3 |              0.122 |
 
 ### Decompressing 1 million integers
 
@@ -122,10 +122,10 @@ res <- bench::mark(
 
 | package  | expression                           | median | itr/sec |   MB/s |
 | :------- | :----------------------------------- | -----: | ------: | -----: |
-| zstdlite | zstd\_decompress(compressed\_lo)     | 8.34ms |     114 |  457.6 |
-| zstdlite | zstd\_decompress(compressed\_hi)     | 2.31ms |     414 | 1648.7 |
-| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.64ms |     595 | 2330.9 |
-| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) |  1.2ms |     815 | 3175.4 |
+| zstdlite | zstd\_decompress(compressed\_lo)     | 8.59ms |     113 |  444.2 |
+| zstdlite | zstd\_decompress(compressed\_hi)     | 2.57ms |     375 | 1486.8 |
+| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.65ms |     576 | 2306.0 |
+| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 1.24ms |     768 | 3067.4 |
 
 ## Technical bits
 
