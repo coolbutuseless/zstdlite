@@ -5,7 +5,8 @@
 
 <!-- badges: start -->
 
-![](https://img.shields.io/badge/cool-useless-green.svg)
+![](https://img.shields.io/badge/cool-useless-green.svg) [![R build
+status](https://github.com/coolbutuseless/zstdlite/workflows/R-CMD-check/badge.svg)](https://github.com/coolbutuseless/zstdlite/actions)
 <!-- badges: end -->
 
 `zstdlite` provides access to the very fast (and highly configurable)
@@ -94,12 +95,12 @@ res <- bench::mark(
 
 | package  | expression                                                 |  median | itr/sec |  MB/s | compression\_ratio |
 | :------- | :--------------------------------------------------------- | ------: | ------: | ----: | -----------------: |
-| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 14.97ms |      67 | 254.8 |              0.150 |
-| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 14.91ms |      66 | 255.8 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.73ms |      68 | 258.9 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 96.07ms |      10 |  39.7 |              0.107 |
-| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.46s |       0 |   1.6 |              0.075 |
-| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.53ms |     152 | 583.8 |              0.306 |
+| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 15.11ms |      66 | 252.5 |              0.150 |
+| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 15.19ms |      66 | 251.1 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.88ms |      67 | 256.4 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 94.53ms |      10 |  40.4 |              0.106 |
+| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.47s |       0 |   1.5 |              0.075 |
+| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |   6.5ms |     153 | 586.8 |              0.306 |
 | lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.37s |       0 |   0.3 |              0.122 |
 
 ### Decompressing 1 million integers
@@ -122,10 +123,10 @@ res <- bench::mark(
 
 | package  | expression                           | median | itr/sec |   MB/s |
 | :------- | :----------------------------------- | -----: | ------: | -----: |
-| zstdlite | zstd\_decompress(compressed\_lo)     | 8.42ms |     114 |  453.0 |
-| zstdlite | zstd\_decompress(compressed\_hi)     | 2.21ms |     433 | 1725.9 |
-| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.62ms |     579 | 2359.1 |
-| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 1.24ms |     762 | 3068.9 |
+| zstdlite | zstd\_decompress(compressed\_lo)     | 8.54ms |     111 |  446.7 |
+| zstdlite | zstd\_decompress(compressed\_hi)     | 2.28ms |     415 | 1669.9 |
+| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.64ms |     590 | 2333.5 |
+| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 1.25ms |     744 | 3043.7 |
 
 ## Technical bits
 
