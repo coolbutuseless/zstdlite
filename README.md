@@ -25,7 +25,7 @@ For a more general solution to fast serialization of R objects, see the
 [fst](https://github.com/fstpackage/fst) or
 [qs](https://cran.r-project.org/package=qs) packages.
 
-Currently zstd code provided with this package is v1.4.5.
+Currently zstd code provided with this package is v1.4.6.
 
 ### Design Choices
 
@@ -95,13 +95,13 @@ res <- bench::mark(
 
 | package  | expression                                                 |  median | itr/sec |  MB/s | compression\_ratio |
 | :------- | :--------------------------------------------------------- | ------: | ------: | ----: | -----------------: |
-| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 15.11ms |      66 | 252.5 |              0.150 |
-| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 15.19ms |      66 | 251.1 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.88ms |      67 | 256.4 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 94.53ms |      10 |  40.4 |              0.106 |
-| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.47s |       0 |   1.5 |              0.075 |
-| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |   6.5ms |     153 | 586.8 |              0.306 |
-| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.37s |       0 |   0.3 |              0.122 |
+| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 14.93ms |      66 | 255.6 |              0.150 |
+| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 15.04ms |      66 | 253.6 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 15.03ms |      66 | 253.8 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 96.07ms |      10 |  39.7 |              0.106 |
+| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.49s |       0 |   1.5 |              0.076 |
+| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.44ms |     154 | 592.1 |              0.306 |
+| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.41s |       0 |   0.3 |              0.123 |
 
 ### Decompressing 1 million integers
 
@@ -123,10 +123,10 @@ res <- bench::mark(
 
 | package  | expression                           | median | itr/sec |   MB/s |
 | :------- | :----------------------------------- | -----: | ------: | -----: |
-| zstdlite | zstd\_decompress(compressed\_lo)     | 8.54ms |     111 |  446.7 |
-| zstdlite | zstd\_decompress(compressed\_hi)     | 2.28ms |     415 | 1669.9 |
-| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.64ms |     590 | 2333.5 |
-| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 1.25ms |     744 | 3043.7 |
+| zstdlite | zstd\_decompress(compressed\_lo)     | 8.58ms |     113 |  444.4 |
+| zstdlite | zstd\_decompress(compressed\_hi)     | 2.23ms |     418 | 1706.5 |
+| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.66ms |     546 | 2296.5 |
+| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) |  1.3ms |     695 | 2941.3 |
 
 ## Technical bits
 

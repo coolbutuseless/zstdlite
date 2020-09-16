@@ -36,7 +36,7 @@ vector representation using `base::serialize()`.
 For a more general solution to fast serialization of R objects, see the 
 [fst](https://github.com/fstpackage/fst) or [qs](https://cran.r-project.org/package=qs) packages.
 
-Currently zstd code provided with this package is v1.4.5.
+Currently zstd code provided with this package is v1.4.6.
 
 
 ### Design Choices
