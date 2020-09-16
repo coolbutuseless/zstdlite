@@ -94,13 +94,13 @@ res <- bench::mark(
 
 | package  | expression                                                 |  median | itr/sec |  MB/s | compression\_ratio |
 | :------- | :--------------------------------------------------------- | ------: | ------: | ----: | -----------------: |
-| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 14.97ms |      66 | 254.8 |              0.150 |
-| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 15.18ms |      65 | 251.3 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.86ms |      67 | 256.6 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 95.12ms |      10 |  40.1 |              0.106 |
-| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.47s |       0 |   1.5 |              0.076 |
-| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.55ms |     152 | 582.2 |              0.306 |
-| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.36s |       0 |   0.3 |              0.122 |
+| zstdlite | zstd\_compress(input\_ints, level = -5)                    | 14.97ms |      67 | 254.8 |              0.150 |
+| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 14.91ms |      66 | 255.8 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.73ms |      68 | 258.9 |              0.131 |
+| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 96.07ms |      10 |  39.7 |              0.107 |
+| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.46s |       0 |   1.6 |              0.075 |
+| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.53ms |     152 | 583.8 |              0.306 |
+| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.37s |       0 |   0.3 |              0.122 |
 
 ### Decompressing 1 million integers
 
@@ -122,10 +122,10 @@ res <- bench::mark(
 
 | package  | expression                           | median | itr/sec |   MB/s |
 | :------- | :----------------------------------- | -----: | ------: | -----: |
-| zstdlite | zstd\_decompress(compressed\_lo)     | 8.59ms |     113 |  444.2 |
-| zstdlite | zstd\_decompress(compressed\_hi)     | 2.57ms |     375 | 1486.8 |
-| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.65ms |     576 | 2306.0 |
-| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 1.24ms |     768 | 3067.4 |
+| zstdlite | zstd\_decompress(compressed\_lo)     | 8.42ms |     114 |  453.0 |
+| zstdlite | zstd\_decompress(compressed\_hi)     | 2.21ms |     433 | 1725.9 |
+| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.62ms |     579 | 2359.1 |
+| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 1.24ms |     762 | 3068.9 |
 
 ## Technical bits
 
@@ -184,6 +184,18 @@ object returned by `zstd_decompress()` can only be a simple vector.
       - is likely to evolve (so currently do not plan on compressing
         something in one version of `zstdlite` and decompressing in
         another version.)
+
+### Zstd “Single File” Libary
+
+  - To simplify the code within this package, it uses the ‘single file
+    library’ version of zstd
+  - To update this package when zstd is updated, create the single file
+    library version
+    1.  cd zstd/contrib/single\_file\_libs
+    2.  sh create\_single\_file\_library.sh
+    3.  Wait…..
+    4.  copy zstd/contrib/single\_file\_libs/zstd.c into zstdlite/src
+    5.  copy zstd/lib/zstd.h into zstdlite/src
 
 ## Related Software
 
