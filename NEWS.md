@@ -1,3 +1,8 @@
+# zstdlite 0.1.3 2020-09-18
+
+* Encode dimension information such that arrays and matrices can be recreated
+  when decompressing i.e. no longer just simple atomic vectors 
+
 # zstdlite 0.1.2 2020-09-16
 
 * Update to zstd v1.4.6

@@ -2,7 +2,7 @@
 % Please edit documentation in R/zstd.R
 \name{zstd_compress}
 \alias{zstd_compress}
-\title{Compress numeric vector data with zstd}
+\title{Compress numeric vector/array data with zstd}
 \usage{
 zstd_compress(src, level = 3)
 }
@@ -15,11 +15,12 @@ more compression. Standard compression values are in range [-5, 22].
 Other values are possible, but have little to no effect.}
 }
 \description{
-Vector data must be raw, integer, numeric or logical.
+Data must be raw, integer, numeric or logical.  Storage can be a plain
+atomic vector or a multi-dimensional array.
 }
 \details{
-The R object meta-data is not compressed, so attributes and dimensions of
-the matrix/vector argument will be lost.
+The R object meta-data is not compressed, so attributes (other than the
+dimensions) of the matrix/vector argument will be lost.
 
 To compress general R objects, they can first be converted to a raw byte
 representation using \code{base::serialize()} e.g.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/zstd.R
 \name{zstd_decompress}
 \alias{zstd_decompress}
-\title{Unpack compressed bytes into its original vector}
+\title{Unpack compressed bytes into the original data with matching dimensions.}
 \usage{
 zstd_decompress(raw_vec)
 }
@@ -11,5 +11,5 @@ zstd_decompress(raw_vec)
 This data must have been created with \code{zstdlite::zstd_compress()}}
 }
 \description{
-Unpack compressed bytes into its original vector
+Unpack compressed bytes into the original data with matching dimensions.
 }

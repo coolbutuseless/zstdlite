@@ -1,12 +1,13 @@
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Compress numeric vector data with zstd
+#' Compress numeric vector/array data with zstd
 #'
-#' Vector data must be raw, integer, numeric or logical.
+#' Data must be raw, integer, numeric or logical.  Storage can be a plain
+#' atomic vector or a multi-dimensional array.
 #'
-#' The R object meta-data is not compressed, so attributes and dimensions of
-#' the matrix/vector argument will be lost.
+#' The R object meta-data is not compressed, so attributes (other than the
+#' dimensions) of the matrix/vector argument will be lost.
 #'
 #' To compress general R objects, they can first be converted to a raw byte
 #' representation using \code{base::serialize()} e.g.
@@ -22,12 +23,12 @@
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_compress <- function(src, level = 3) {
-  .Call(zstd_compress_, src, level)
+  .Call(zstd_compress_, src, as.integer(level))
 }
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Unpack compressed bytes into its original vector
+#' Unpack compressed bytes into the original data with matching dimensions.
 #'
 #' @param raw_vec Vector of raw values representing the compressed data.
 #'        This data must have been created with \code{zstdlite::zstd_compress()}
