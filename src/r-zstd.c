@@ -96,7 +96,7 @@ SEXP zstd_compress_(SEXP src_, SEXP compressionLevel_) {
       error("zstd_compress(): 7-dimensional arrays are the maximum.");
     }
     for (int i = 0; i < ndims; i++) {
-      if (INTEGER(x_)[i] > INT32_MAX) {
+      if (INTEGER(x_)[i] > INT_MAX) {
         // Todo: long vector support
         error("zstd_compress(): Long vectors not supported.");
       }
@@ -126,8 +126,18 @@ SEXP zstd_compress_(SEXP src_, SEXP compressionLevel_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Compress the data into the temporary buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  //Rprintf("Comp level: %i\n", asInteger(compressionLevel_));
-  int num_compressed_bytes = ZSTD_compress(dst, dstCapacity, src, srcSize, asInteger(compressionLevel_));
+  int compressionLevel = asInteger(compressionLevel_);
+  compressionLevel = compressionLevel < -5 ? -5 : compressionLevel;
+  compressionLevel = compressionLevel > 22 ? 22 : compressionLevel;
+
+  ZSTD_CCtx* cctx = ZSTD_createCCtx();
+  ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, compressionLevel);
+  //ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, nthreads);
+  int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, src, srcSize);
+  ZSTD_freeCCtx(cctx);
+
+
+  //int num_compressed_bytes = ZSTD_compress(dst, dstCapacity, src, srcSize, compressionLevel);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Watch for compression errors

@@ -17,9 +17,7 @@
 #' @param level Compression level. Default 3 (to match the command line
 #'        interface to zstd).  Higher values run slower but with
 #'        more compression. Standard compression values are in range [-5, 22].
-#'        Other values are possible, but have little to no effect.
 #'
-#' @useDynLib zstdlite zstd_compress_
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_compress <- function(src, level = 3) {
@@ -33,7 +31,6 @@ zstd_compress <- function(src, level = 3) {
 #' @param raw_vec Vector of raw values representing the compressed data.
 #'        This data must have been created with \code{zstdlite::zstd_compress()}
 #'
-#' @useDynLib zstdlite zstd_decompress_
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_decompress <- function(raw_vec) {

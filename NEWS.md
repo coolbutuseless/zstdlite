@@ -1,3 +1,8 @@
+# zstdlite 0.1.4 2020-09-18
+
+* Use a slightly more complex API into zstd such that negative compression levels
+  are now available.
+  
 # zstdlite 0.1.3 2020-09-18
 
 * Encode dimension information such that arrays and matrices can be recreated

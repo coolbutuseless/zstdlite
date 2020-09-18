@@ -2,5 +2,4 @@
 
 export(zstd_compress)
 export(zstd_decompress)
-useDynLib(zstdlite,zstd_compress_)
-useDynLib(zstdlite,zstd_decompress_)
+useDynLib(zstdlite, .registration=TRUE)

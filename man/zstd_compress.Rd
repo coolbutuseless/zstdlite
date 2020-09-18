@@ -11,8 +11,7 @@ zstd_compress(src, level = 3)
 
 \item{level}{Compression level. Default 3 (to match the command line
 interface to zstd).  Higher values run slower but with
-more compression. Standard compression values are in range [-5, 22].
-Other values are possible, but have little to no effect.}
+more compression. Standard compression values are in range [-5, 22].}
 }
 \description{
 Data must be raw, integer, numeric or logical.  Storage can be a plain

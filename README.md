@@ -96,11 +96,13 @@ compressed.
 ``` r
 library(zstdlite)
 library(lz4lite)
+set.seed(1)
 
 N                 <- 1e6
-input_ints        <- sample(1:5, N, prob = (1:5)^2, replace = TRUE)
-compressed_lo     <- zstd_compress(input_ints)
-compressed_hi     <- zstd_compress(input_ints, level = 100)
+input_ints        <- sample(1:5, N, prob = (1:5)^4, replace = TRUE)
+compressed_lo     <- zstd_compress(input_ints, level = -1)
+compressed_mid    <- zstd_compress(input_ints, level =  3)
+compressed_hi     <- zstd_compress(input_ints, level = 22)
 compressed_lo_lz4 <- lz4_compress(input_ints, acc = 1)
 compressed_hi_lz4 <- lz4_compress(input_ints, use_hc = TRUE, hc_level = 12)
 ```
@@ -113,6 +115,7 @@ compressed_hi_lz4 <- lz4_compress(input_ints, use_hc = TRUE, hc_level = 12)
 library(zstdlite)
 
 res <- bench::mark(
+  zstd_compress(input_ints, level =  -1),
   zstd_compress(input_ints, level =   1),
   zstd_compress(input_ints, level =   3),
   zstd_compress(input_ints, level =  10),
@@ -127,12 +130,13 @@ res <- bench::mark(
 
 | package  | expression                                                 |  median | itr/sec |  MB/s | compression\_ratio |
 | :------- | :--------------------------------------------------------- | ------: | ------: | ----: | -----------------: |
-| zstdlite | zstd\_compress(input\_ints, level = 1)                     | 14.78ms |      67 | 258.1 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 14.73ms |      67 | 259.0 |              0.131 |
-| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 94.08ms |      11 |  40.5 |              0.106 |
-| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.36s |       0 |   1.6 |              0.076 |
-| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.38ms |     155 | 597.8 |              0.306 |
-| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |  11.21s |       0 |   0.3 |              0.122 |
+| zstdlite | zstd\_compress(input\_ints, level = -1)                    | 13.52ms |      74 | 282.2 |              0.122 |
+| zstdlite | zstd\_compress(input\_ints, level = 1)                     |  13.7ms |      73 | 278.5 |              0.101 |
+| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 13.34ms |      74 | 286.0 |              0.101 |
+| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 88.96ms |      11 |  42.9 |              0.083 |
+| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.33s |       0 |   1.6 |              0.058 |
+| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.07ms |     165 | 628.2 |              0.264 |
+| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |   8.89s |       0 |   0.4 |              0.089 |
 
 ### Decompressing 1 million integers
 
@@ -143,6 +147,7 @@ res <- bench::mark(
 ``` r
 res <- bench::mark(
   zstd_decompress(compressed_lo),
+  zstd_decompress(compressed_mid),
   zstd_decompress(compressed_hi),
   lz4_decompress(compressed_lo_lz4),
   lz4_decompress(compressed_hi_lz4),
@@ -152,12 +157,13 @@ res <- bench::mark(
 
 </details>
 
-| package  | expression                           | median | itr/sec |   MB/s |
-| :------- | :----------------------------------- | -----: | ------: | -----: |
-| zstdlite | zstd\_decompress(compressed\_lo)     | 8.33ms |     116 |  458.1 |
-| zstdlite | zstd\_decompress(compressed\_hi)     | 2.52ms |     344 | 1511.3 |
-| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) | 1.68ms |     527 | 2275.4 |
-| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 1.22ms |     779 | 3135.4 |
+| package  | expression                           |   median | itr/sec |   MB/s |
+| :------- | :----------------------------------- | -------: | ------: | -----: |
+| zstdlite | zstd\_decompress(compressed\_lo)     |   7.09ms |     134 |  537.7 |
+| zstdlite | zstd\_decompress(compressed\_mid)    |   7.45ms |     133 |  512.0 |
+| zstdlite | zstd\_decompress(compressed\_hi)     |   1.99ms |     466 | 1922.0 |
+| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) |   1.65ms |     566 | 2312.4 |
+| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 844.23µs |    1075 | 4518.5 |
 
 ## Technical bits
 
