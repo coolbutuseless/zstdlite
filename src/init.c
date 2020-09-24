@@ -2,9 +2,8 @@
 #include <R.h>
 #include <Rinternals.h>
 
-
-extern SEXP zstd_compress_();
-extern SEXP zstd_decompress_();
+extern SEXP zstd_serialize_();
+extern SEXP zstd_unserialize_();
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -12,8 +11,8 @@ extern SEXP zstd_decompress_();
 // .Call   R_CallMethodDef
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static const R_CallMethodDef CEntries[] = {
-  {"zstd_compress_"  , (DL_FUNC) &zstd_compress_  , 2},
-  {"zstd_decompress_", (DL_FUNC) &zstd_decompress_, 1},
+  {"zstd_serialize_"  , (DL_FUNC) &zstd_serialize_  , 2},
+  {"zstd_unserialize_", (DL_FUNC) &zstd_unserialize_, 1},
   {NULL, NULL, 0}
 };
 

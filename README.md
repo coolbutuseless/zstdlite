@@ -13,31 +13,22 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 `zstdlite` provides access to the very fast (and highly configurable)
 [zstd](https://github.com/facebook/zstd) library for performing
-in-memory compression of numeric vectors and arrays.
+in-memory compression of R objects.
 
-The scope of this package is limited - it aims to provide functions for
-direct compression of vectors and arrays which contain raw, integer,
-real, complex or logical values. It does this by operating on the data
-payload within the vectors, and gains significant speed by not
-serializing the R object itself. If you wanted to compress arbitrary R
-objects, you must first manually convert into a raw vector
-representation using `base::serialize()`.
+This is mainly an exploratory package figuring out some of R internals,
+but it does compress data, and it is pretty fast.
 
-As of v0.1.3, the dimensions of the input data is stored, and matrices
-and vectors are restored to their original shape upon decompression.
+For rock solid general solutions to fast serialization of R objects, see
+the [fst](https://github.com/fstpackage/fst) or
+[qs](https://cran.r-project.org/package=qs) packages.
 
-Currently zstd code provided with this package is v1.4.6.
+[zstd](https://github.com/facebook/zstd) code provided with this package
+is v1.4.6.
 
-### Design Choices
+## What’s in the box
 
-`zstdlite` will compress the *data payload* within a numeric-ish vector,
-and not the R object itself. Along with this payload, a minimum of meta
-information is kept to store data type and array dimensions.
-
-#### Limitations
-
-  - Any attribute information (other than array dimensions) is lost.
-  - Values must be of type: raw, integer, real, complex or logical.
+  - `zstd_serialize()` and `zstd_unserialize()` for converting R objects
+    to/from a compressed representation
 
 ## Installation
 
@@ -53,15 +44,19 @@ remotes::install_github('coolbutuseless/zstdlite)
 
 ``` r
 arr <- array(1:27, c(3, 3, 3))
-pryr::object_size(arr)
+lobstr::obj_size(arr)
 #> 352 B
 
 
-buf <- zstd_compress(arr)
+buf <- zstd_serialize(arr)
 length(buf) # Number of bytes
-#> [1] 69
+#> [1] 120
 
-zstd_decompress(buf)
+# compression ratio
+length(buf)/as.numeric(lobstr::obj_size(arr))
+#> [1] 0.3409091
+
+zstd_unserialize(buf)
 #> , , 1
 #> 
 #>      [,1] [,2] [,3]
@@ -100,11 +95,11 @@ set.seed(1)
 
 N                 <- 1e6
 input_ints        <- sample(1:5, N, prob = (1:5)^4, replace = TRUE)
-compressed_lo     <- zstd_compress(input_ints, level = -1)
-compressed_mid    <- zstd_compress(input_ints, level =  3)
-compressed_hi     <- zstd_compress(input_ints, level = 22)
-compressed_lo_lz4 <- lz4_compress(input_ints, acc = 1)
-compressed_hi_lz4 <- lz4_compress(input_ints, use_hc = TRUE, hc_level = 12)
+compressed_lo     <- zstd_serialize(input_ints, level = -5)
+compressed_mid    <- zstd_serialize(input_ints, level =  3)
+compressed_mid2   <- zstd_serialize(input_ints, level = 10)
+compressed_hi     <- zstd_serialize(input_ints, level = 22)
+compressed_base   <- memCompress(serialize(input_ints, NULL, xdr = FALSE))
 ```
 
 <details>
@@ -115,28 +110,24 @@ compressed_hi_lz4 <- lz4_compress(input_ints, use_hc = TRUE, hc_level = 12)
 library(zstdlite)
 
 res <- bench::mark(
-  zstd_compress(input_ints, level =  -1),
-  zstd_compress(input_ints, level =   1),
-  zstd_compress(input_ints, level =   3),
-  zstd_compress(input_ints, level =  10),
-  zstd_compress(input_ints, level =  22),
-  lz4_compress (input_ints, acc = 1),
-  lz4_compress (input_ints, use_hc = TRUE, hc_level = 12),
+  zstd_serialize(input_ints, level =  -5),
+  zstd_serialize(input_ints, level =   3),
+  zstd_serialize(input_ints, level =  10),
+  zstd_serialize(input_ints, level =  22),
+  memCompress(serialize(input_ints, NULL, xdr = FALSE)),
   check = FALSE
 )
 ```
 
 </details>
 
-| package  | expression                                                 |  median | itr/sec |  MB/s | compression\_ratio |
-| :------- | :--------------------------------------------------------- | ------: | ------: | ----: | -----------------: |
-| zstdlite | zstd\_compress(input\_ints, level = -1)                    | 13.52ms |      74 | 282.2 |              0.122 |
-| zstdlite | zstd\_compress(input\_ints, level = 1)                     |  13.7ms |      73 | 278.5 |              0.101 |
-| zstdlite | zstd\_compress(input\_ints, level = 3)                     | 13.34ms |      74 | 286.0 |              0.101 |
-| zstdlite | zstd\_compress(input\_ints, level = 10)                    | 88.96ms |      11 |  42.9 |              0.083 |
-| zstdlite | zstd\_compress(input\_ints, level = 22)                    |   2.33s |       0 |   1.6 |              0.058 |
-| lz4lite  | lz4\_compress(input\_ints, acc = 1)                        |  6.07ms |     165 | 628.2 |              0.264 |
-| lz4lite  | lz4\_compress(input\_ints, use\_hc = TRUE, hc\_level = 12) |   8.89s |       0 |   0.4 |              0.089 |
+| expression                                             |   median | itr/sec |  MB/s | compression\_ratio |
+| :----------------------------------------------------- | -------: | ------: | ----: | -----------------: |
+| zstd\_serialize(input\_ints, level = -5)               |   14.5ms |      68 | 263.1 |              0.122 |
+| zstd\_serialize(input\_ints, level = 3)                |  14.22ms |      70 | 268.2 |              0.101 |
+| zstd\_serialize(input\_ints, level = 10)               |  90.37ms |      11 |  42.2 |              0.083 |
+| zstd\_serialize(input\_ints, level = 22)               |    2.45s |       0 |   1.6 |              0.058 |
+| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 178.95ms |       6 |  21.3 |              0.079 |
 
 ### Decompressing 1 million integers
 
@@ -146,81 +137,22 @@ res <- bench::mark(
 
 ``` r
 res <- bench::mark(
-  zstd_decompress(compressed_lo),
-  zstd_decompress(compressed_mid),
-  zstd_decompress(compressed_hi),
-  lz4_decompress(compressed_lo_lz4),
-  lz4_decompress(compressed_hi_lz4),
-  check = FALSE
+  zstd_unserialize(compressed_lo),
+  zstd_unserialize(compressed_mid2),
+  zstd_unserialize(compressed_hi),
+  unserialize(memDecompress(compressed_base, type = 'gzip')),
+  check = TRUE
 )
 ```
 
 </details>
 
-| package  | expression                           |   median | itr/sec |   MB/s |
-| :------- | :----------------------------------- | -------: | ------: | -----: |
-| zstdlite | zstd\_decompress(compressed\_lo)     |   7.09ms |     134 |  537.7 |
-| zstdlite | zstd\_decompress(compressed\_mid)    |   7.45ms |     133 |  512.0 |
-| zstdlite | zstd\_decompress(compressed\_hi)     |   1.99ms |     466 | 1922.0 |
-| lz4lite  | lz4\_decompress(compressed\_lo\_lz4) |   1.65ms |     566 | 2312.4 |
-| lz4lite  | lz4\_decompress(compressed\_hi\_lz4) | 844.23µs |    1075 | 4518.5 |
-
-## Technical bits
-
-### Why only vectors of raw, integer, real, complex or logical?
-
-R objects can be considered to consist of:
-
-  - a header - giving information like length and information for the
-    garbage collector
-  - a body - data of some kind.
-
-The vectors supported by `zstdlite` are those vectors whose body
-consists of data that is directly interpretable as a contiguous sequence
-of bytes representing numerical values.
-
-Other R objects (like lists or character vectors) are really collections
-of pointers to other objects, and do not live in memory as a contiguous
-sequence of byte data.
-
-### How it works.
-
-##### Compression
-
-1.  Given a pointer to a standard numeric vector from R (i.e. an *SEXP*
-    pointer).
-2.  Ignore any attributes (except for dimensions) and compress the data
-    payload within the object.
-3.  Prefix the compressed data with
-      - a 4 byte header giving the SEXP type
-      - the dimensions of the data
-4.  Return a raw vector to the user containing the compressed bytes.
-
-##### Decompression
-
-1.  Strip off the 4-bytes of header information and the dimension
-    information
-2.  Feed the other bytes in to the ZSTD decompression function written
-    in C
-3.  Use the header to decide what sort of R object this is.
-4.  Decompress the data into an R object of the correct type, and set
-    the dimensions
-5.  Return the R object to the user.
-
-### Framing of the compressed data
-
-  - `zstdlite` prefixes the standard Zstandard frame with some extra
-    bytes.
-  - The compressed representation is the compressed data prefixed with a
-    custom 8 byte header consisting of
-      - ‘ZST’
-      - 1-byte for SEXP type i.e. INTSXP, RAWSXP, REALSXP or LGLSXP
-  - This data representation
-      - is compatible with the standard Zstandard frame format if the
-        leading bytes are removed.
-      - is likely to evolve (so currently do not plan on compressing
-        something in one version of `zstdlite` and decompressing in
-        another version.)
+| expression                                                  |  median | itr/sec |  MB/s |
+| :---------------------------------------------------------- | ------: | ------: | ----: |
+| zstd\_unserialize(compressed\_lo)                           |  9.41ms |     104 | 405.4 |
+| zstd\_unserialize(compressed\_mid2)                         |  7.05ms |     140 | 541.1 |
+| zstd\_unserialize(compressed\_hi)                           |   4.2ms |     217 | 909.3 |
+| unserialize(memDecompress(compressed\_base, type = “gzip”)) | 14.24ms |      70 | 267.9 |
 
 ### Zstd “Single File” Libary
 

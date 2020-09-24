@@ -1,10 +1,10 @@
 Package: zstdlite
 Type: Package
-Title: In-memory Compression of Numeric Vectors with Zstandard
-Version: 0.1.4
+Title: In-memory Compression with Zstandard
+Version: 0.2.0
 Author: mikefc
 Maintainer: mikefc <mikefc@coolbutuseless.com>
-Description: In memory compression of simple vectors using zstd.
+Description: In-memory compression of arbitrary R objects with Zstandard.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

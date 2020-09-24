@@ -1,3 +1,9 @@
+
+# zstdlite 0.2.0 2020-09-24
+
+* Feature: Now uses R's serialization mechanism to compress any R object
+* Removed `zstd_compress()` and `zstd_uncompress()`
+
 # zstdlite 0.1.4 2020-09-18
 
 * Use a slightly more complex API into zstd such that negative compression levels
