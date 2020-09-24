@@ -7,12 +7,18 @@
 \usage{
 zstd_serialize(robj, level = 3L)
 
-zstd_unserialize(robj)
+zstd_unserialize(raw_vec)
 }
 \arguments{
 \item{robj}{Any R object understood by \code{base::serialize()}}
 
-\item{level}{compression level -5 to 22}
+\item{level}{compression level -5 to 22. Default: 3}
+
+\item{raw_vec}{Raw vector containing a compressed serialized representation of
+an R object}
+}
+\value{
+serialized representation compressed into a raw byte vector
 }
 \description{
 Serialize arbitrary objects to a compressed stream of bytes using Zstandard

@@ -45,39 +45,48 @@ remotes::install_github('coolbutuseless/zstdlite)
 ``` r
 arr <- array(1:27, c(3, 3, 3))
 lobstr::obj_size(arr)
-#> 352 B
+```
 
+    #> 352 B
 
+``` r
 buf <- zstd_serialize(arr)
 length(buf) # Number of bytes
-#> [1] 120
+```
 
+    #> [1] 120
+
+``` r
 # compression ratio
 length(buf)/as.numeric(lobstr::obj_size(arr))
-#> [1] 0.3409091
-
-zstd_unserialize(buf)
-#> , , 1
-#> 
-#>      [,1] [,2] [,3]
-#> [1,]    1    4    7
-#> [2,]    2    5    8
-#> [3,]    3    6    9
-#> 
-#> , , 2
-#> 
-#>      [,1] [,2] [,3]
-#> [1,]   10   13   16
-#> [2,]   11   14   17
-#> [3,]   12   15   18
-#> 
-#> , , 3
-#> 
-#>      [,1] [,2] [,3]
-#> [1,]   19   22   25
-#> [2,]   20   23   26
-#> [3,]   21   24   27
 ```
+
+    #> [1] 0.3409091
+
+``` r
+zstd_unserialize(buf)
+```
+
+    #> , , 1
+    #> 
+    #>      [,1] [,2] [,3]
+    #> [1,]    1    4    7
+    #> [2,]    2    5    8
+    #> [3,]    3    6    9
+    #> 
+    #> , , 2
+    #> 
+    #>      [,1] [,2] [,3]
+    #> [1,]   10   13   16
+    #> [2,]   11   14   17
+    #> [3,]   12   15   18
+    #> 
+    #> , , 3
+    #> 
+    #>      [,1] [,2] [,3]
+    #> [1,]   19   22   25
+    #> [2,]   20   23   26
+    #> [3,]   21   24   27
 
 ## Compressing 1 million Integers
 
@@ -123,11 +132,11 @@ res <- bench::mark(
 
 | expression                                             |   median | itr/sec |  MB/s | compression\_ratio |
 | :----------------------------------------------------- | -------: | ------: | ----: | -----------------: |
-| zstd\_serialize(input\_ints, level = -5)               |   14.5ms |      68 | 263.1 |              0.122 |
-| zstd\_serialize(input\_ints, level = 3)                |  14.22ms |      70 | 268.2 |              0.101 |
-| zstd\_serialize(input\_ints, level = 10)               |  90.37ms |      11 |  42.2 |              0.083 |
-| zstd\_serialize(input\_ints, level = 22)               |    2.45s |       0 |   1.6 |              0.058 |
-| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 178.95ms |       6 |  21.3 |              0.079 |
+| zstd\_serialize(input\_ints, level = -5)               |  14.56ms |      68 | 262.0 |              0.122 |
+| zstd\_serialize(input\_ints, level = 3)                |  14.29ms |      69 | 267.0 |              0.101 |
+| zstd\_serialize(input\_ints, level = 10)               |  89.68ms |      11 |  42.5 |              0.083 |
+| zstd\_serialize(input\_ints, level = 22)               |    2.37s |       0 |   1.6 |              0.058 |
+| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 178.86ms |       6 |  21.3 |              0.079 |
 
 ### Decompressing 1 million integers
 
@@ -149,10 +158,10 @@ res <- bench::mark(
 
 | expression                                                  |  median | itr/sec |  MB/s |
 | :---------------------------------------------------------- | ------: | ------: | ----: |
-| zstd\_unserialize(compressed\_lo)                           |  9.41ms |     104 | 405.4 |
-| zstd\_unserialize(compressed\_mid2)                         |  7.05ms |     140 | 541.1 |
-| zstd\_unserialize(compressed\_hi)                           |   4.2ms |     217 | 909.3 |
-| unserialize(memDecompress(compressed\_base, type = “gzip”)) | 14.24ms |      70 | 267.9 |
+| zstd\_unserialize(compressed\_lo)                           |  9.62ms |     104 | 396.4 |
+| zstd\_unserialize(compressed\_mid2)                         |  7.68ms |     134 | 496.9 |
+| zstd\_unserialize(compressed\_hi)                           |  4.26ms |     214 | 896.2 |
+| unserialize(memDecompress(compressed\_base, type = “gzip”)) | 13.72ms |      72 | 278.1 |
 
 ### Zstd “Single File” Libary
 
