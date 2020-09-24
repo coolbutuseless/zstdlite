@@ -72,10 +72,6 @@ zstd_unserialize(buf)
 
 ## Compressing 1 million Integers
 
-`zstdlite` supports the direct compression of raw, integer, real, complex and logical vectors.
-
-These vectors do not need to be serialized first to a raw representation, instead
-the data-payload within these vectors is compressed.
 
 ```{r}
 library(zstdlite)
@@ -84,6 +80,7 @@ set.seed(1)
 
 N                 <- 1e6
 input_ints        <- sample(1:5, N, prob = (1:5)^4, replace = TRUE)
+uncompressed      <- serialize(input_ints, NULL, xdr = FALSE)
 compressed_lo     <- zstd_serialize(input_ints, level = -5)
 compressed_mid    <- zstd_serialize(input_ints, level =  3)
 compressed_mid2   <- zstd_serialize(input_ints, level = 10)
@@ -94,11 +91,12 @@ compressed_base   <- memCompress(serialize(input_ints, NULL, xdr = FALSE))
 
 ```{r echo = FALSE}
 lens <- c(
+  length(serialize(input_ints, NULL, xdr = FALSE)),
+  length(memCompress(serialize(input_ints, NULL, xdr = FALSE))),
   length(zstd_serialize(input_ints, level = -5)),
   length(zstd_serialize(input_ints, level =  3)),
   length(zstd_serialize(input_ints, level = 10)),
-  length(zstd_serialize(input_ints, level = 22)),
-  length(memCompress(serialize(input_ints, NULL, xdr = FALSE)))
+  length(zstd_serialize(input_ints, level = 22))
 )
 ```
 
@@ -111,11 +109,12 @@ lens <- c(
 library(zstdlite)
 
 res <- bench::mark(
+  serialize(input_ints, NULL, xdr = FALSE),
+  memCompress(serialize(input_ints, NULL, xdr = FALSE)),
   zstd_serialize(input_ints, level =  -5),
   zstd_serialize(input_ints, level =   3),
   zstd_serialize(input_ints, level =  10),
   zstd_serialize(input_ints, level =  22),
-  memCompress(serialize(input_ints, NULL, xdr = FALSE)),
   check = FALSE
 )
 ```
@@ -140,6 +139,7 @@ res %>%
 
 ```{r}
 res <- bench::mark(
+  unserialize(uncompressed),
   zstd_unserialize(compressed_lo),
   zstd_unserialize(compressed_mid2),
   zstd_unserialize(compressed_hi),

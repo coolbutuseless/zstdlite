@@ -90,13 +90,6 @@ zstd_unserialize(buf)
 
 ## Compressing 1 million Integers
 
-`zstdlite` supports the direct compression of raw, integer, real,
-complex and logical vectors.
-
-These vectors do not need to be serialized first to a raw
-representation, instead the data-payload within these vectors is
-compressed.
-
 ``` r
 library(zstdlite)
 library(lz4lite)
@@ -104,6 +97,7 @@ set.seed(1)
 
 N                 <- 1e6
 input_ints        <- sample(1:5, N, prob = (1:5)^4, replace = TRUE)
+uncompressed      <- serialize(input_ints, NULL, xdr = FALSE)
 compressed_lo     <- zstd_serialize(input_ints, level = -5)
 compressed_mid    <- zstd_serialize(input_ints, level =  3)
 compressed_mid2   <- zstd_serialize(input_ints, level = 10)
@@ -119,24 +113,26 @@ compressed_base   <- memCompress(serialize(input_ints, NULL, xdr = FALSE))
 library(zstdlite)
 
 res <- bench::mark(
+  serialize(input_ints, NULL, xdr = FALSE),
+  memCompress(serialize(input_ints, NULL, xdr = FALSE)),
   zstd_serialize(input_ints, level =  -5),
   zstd_serialize(input_ints, level =   3),
   zstd_serialize(input_ints, level =  10),
   zstd_serialize(input_ints, level =  22),
-  memCompress(serialize(input_ints, NULL, xdr = FALSE)),
   check = FALSE
 )
 ```
 
 </details>
 
-| expression                                             |   median | itr/sec |  MB/s | compression\_ratio |
-| :----------------------------------------------------- | -------: | ------: | ----: | -----------------: |
-| zstd\_serialize(input\_ints, level = -5)               |  14.56ms |      68 | 262.0 |              0.122 |
-| zstd\_serialize(input\_ints, level = 3)                |  14.29ms |      69 | 267.0 |              0.101 |
-| zstd\_serialize(input\_ints, level = 10)               |  89.68ms |      11 |  42.5 |              0.083 |
-| zstd\_serialize(input\_ints, level = 22)               |    2.37s |       0 |   1.6 |              0.058 |
-| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 178.86ms |       6 |  21.3 |              0.079 |
+| expression                                             |   median | itr/sec |   MB/s | compression\_ratio |
+| :----------------------------------------------------- | -------: | ------: | -----: | -----------------: |
+| serialize(input\_ints, NULL, xdr = FALSE)              |   3.02ms |     256 | 1261.1 |              1.000 |
+| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 184.02ms |       5 |   20.7 |              0.079 |
+| zstd\_serialize(input\_ints, level = -5)               |  14.63ms |      68 |  260.8 |              0.122 |
+| zstd\_serialize(input\_ints, level = 3)                |  14.53ms |      69 |  262.6 |              0.101 |
+| zstd\_serialize(input\_ints, level = 10)               |  90.86ms |      11 |   42.0 |              0.083 |
+| zstd\_serialize(input\_ints, level = 22)               |     2.4s |       0 |    1.6 |              0.058 |
 
 ### Decompressing 1 million integers
 
@@ -146,6 +142,7 @@ res <- bench::mark(
 
 ``` r
 res <- bench::mark(
+  unserialize(uncompressed),
   zstd_unserialize(compressed_lo),
   zstd_unserialize(compressed_mid2),
   zstd_unserialize(compressed_hi),
@@ -156,12 +153,13 @@ res <- bench::mark(
 
 </details>
 
-| expression                                                  |  median | itr/sec |  MB/s |
-| :---------------------------------------------------------- | ------: | ------: | ----: |
-| zstd\_unserialize(compressed\_lo)                           |  9.62ms |     104 | 396.4 |
-| zstd\_unserialize(compressed\_mid2)                         |  7.68ms |     134 | 496.9 |
-| zstd\_unserialize(compressed\_hi)                           |  4.26ms |     214 | 896.2 |
-| unserialize(memDecompress(compressed\_base, type = “gzip”)) | 13.72ms |      72 | 278.1 |
+| expression                                                  |   median | itr/sec |   MB/s |
+| :---------------------------------------------------------- | -------: | ------: | -----: |
+| unserialize(uncompressed)                                   | 456.96µs |    1801 | 8347.9 |
+| zstd\_unserialize(compressed\_lo)                           |   9.91ms |      96 |  385.0 |
+| zstd\_unserialize(compressed\_mid2)                         |   7.28ms |     139 |  523.9 |
+| zstd\_unserialize(compressed\_hi)                           |   4.57ms |     189 |  834.7 |
+| unserialize(memDecompress(compressed\_base, type = “gzip”)) |  14.96ms |      70 |  255.0 |
 
 ### Zstd “Single File” Libary
 
