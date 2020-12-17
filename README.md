@@ -37,7 +37,7 @@ You can install from
 
 ``` r
 # install.package('remotes')
-remotes::install_github('coolbutuseless/zstdlite)
+remotes::install_github('coolbutuseless/zstdlite')
 ```
 
 ## Basic usage of zstdlite
@@ -126,14 +126,14 @@ res <- bench::mark(
 
 </details>
 
-| expression                                             |  median | itr/sec |   MB/s | compression\_ratio |
-|:-------------------------------------------------------|--------:|--------:|-------:|-------------------:|
-| serialize(input\_ints, NULL, xdr = FALSE)              |  1.37ms |     641 | 2777.2 |              1.000 |
-| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) |   171ms |       6 |   22.3 |              0.079 |
-| zstd\_serialize(input\_ints, level = -5)               | 13.95ms |      71 |  273.4 |              0.122 |
-| zstd\_serialize(input\_ints, level = 3)                | 13.41ms |      73 |  284.5 |              0.101 |
-| zstd\_serialize(input\_ints, level = 10)               | 84.18ms |      12 |   45.3 |              0.083 |
-| zstd\_serialize(input\_ints, level = 22)               |   2.33s |       0 |    1.6 |              0.058 |
+| expression                                             |   median | itr/sec |   MB/s | compression\_ratio |
+|:-------------------------------------------------------|---------:|--------:|-------:|-------------------:|
+| serialize(input\_ints, NULL, xdr = FALSE)              |   1.58ms |     582 | 2408.6 |              1.000 |
+| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 178.58ms |       6 |   21.4 |              0.079 |
+| zstd\_serialize(input\_ints, level = -5)               |  14.05ms |      70 |  271.5 |              0.122 |
+| zstd\_serialize(input\_ints, level = 3)                |  13.84ms |      71 |  275.6 |              0.101 |
+| zstd\_serialize(input\_ints, level = 10)               |  83.93ms |      12 |   45.5 |              0.083 |
+| zstd\_serialize(input\_ints, level = 22)               |    2.32s |       0 |    1.6 |              0.058 |
 
 ### Decompressing 1 million integers
 
@@ -157,11 +157,11 @@ res <- bench::mark(
 
 | expression                                                  |   median | itr/sec |   MB/s |
 |:------------------------------------------------------------|---------:|--------:|-------:|
-| unserialize(uncompressed)                                   | 543.91µs |    1718 | 7013.5 |
-| zstd\_unserialize(compressed\_lo)                           |    9.7ms |      98 |  393.5 |
-| zstd\_unserialize(compressed\_mid2)                         |   6.59ms |     134 |  579.0 |
-| zstd\_unserialize(compressed\_hi)                           |   4.44ms |     209 |  859.4 |
-| unserialize(memDecompress(compressed\_base, type = “gzip”)) |   12.2ms |      79 |  312.6 |
+| unserialize(uncompressed)                                   | 476.71µs |    2025 | 8002.2 |
+| zstd\_unserialize(compressed\_lo)                           |   8.84ms |     109 |  431.3 |
+| zstd\_unserialize(compressed\_mid2)                         |   6.07ms |     156 |  628.2 |
+| zstd\_unserialize(compressed\_hi)                           |   4.28ms |     227 |  891.0 |
+| unserialize(memDecompress(compressed\_base, type = “gzip”)) |  12.46ms |      80 |  306.3 |
 
 ### Zstd “Single File” Libary
 

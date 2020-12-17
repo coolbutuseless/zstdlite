@@ -47,7 +47,7 @@ You can install from [GitHub](https://github.com/coolbutuseless/zstdlite) with:
 
 ``` r
 # install.package('remotes')
-remotes::install_github('coolbutuseless/zstdlite)
+remotes::install_github('coolbutuseless/zstdlite')
 ```
 
 ## Basic usage of zstdlite
