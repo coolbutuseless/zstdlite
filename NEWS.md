@@ -1,4 +1,8 @@
 
+# zstdlite 0.2.1 2020-12-17
+
+* Update to zstd v1.4.7
+
 # zstdlite 0.2.0 2020-09-24
 
 * Feature: Now uses R's serialization mechanism to compress any R object

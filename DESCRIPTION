@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
 Title: In-memory Compression with Zstandard
-Version: 0.2.0
+Version: 0.2.1
 Author: mikefc
 Maintainer: mikefc <mikefc@coolbutuseless.com>
 Description: In-memory compression of arbitrary R objects with Zstandard.

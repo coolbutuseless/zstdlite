@@ -23,11 +23,11 @@ the [fst](https://github.com/fstpackage/fst) or
 [qs](https://cran.r-project.org/package=qs) packages.
 
 [zstd](https://github.com/facebook/zstd) code provided with this package
-is v1.4.6.
+is v1.4.7.
 
 ## What’s in the box
 
-  - `zstd_serialize()` and `zstd_unserialize()` for converting R objects
+-   `zstd_serialize()` and `zstd_unserialize()` for converting R objects
     to/from a compressed representation
 
 ## Installation
@@ -106,8 +106,9 @@ compressed_base   <- memCompress(serialize(input_ints, NULL, xdr = FALSE))
 ```
 
 <details>
-
-<summary> Click here to show/hide benchmark code </summary>
+<summary>
+Click here to show/hide benchmark code
+</summary>
 
 ``` r
 library(zstdlite)
@@ -125,20 +126,21 @@ res <- bench::mark(
 
 </details>
 
-| expression                                             |   median | itr/sec |   MB/s | compression\_ratio |
-| :----------------------------------------------------- | -------: | ------: | -----: | -----------------: |
-| serialize(input\_ints, NULL, xdr = FALSE)              |   3.02ms |     256 | 1261.1 |              1.000 |
-| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 184.02ms |       5 |   20.7 |              0.079 |
-| zstd\_serialize(input\_ints, level = -5)               |  14.63ms |      68 |  260.8 |              0.122 |
-| zstd\_serialize(input\_ints, level = 3)                |  14.53ms |      69 |  262.6 |              0.101 |
-| zstd\_serialize(input\_ints, level = 10)               |  90.86ms |      11 |   42.0 |              0.083 |
-| zstd\_serialize(input\_ints, level = 22)               |     2.4s |       0 |    1.6 |              0.058 |
+| expression                                             |  median | itr/sec |   MB/s | compression\_ratio |
+|:-------------------------------------------------------|--------:|--------:|-------:|-------------------:|
+| serialize(input\_ints, NULL, xdr = FALSE)              |  1.37ms |     641 | 2777.2 |              1.000 |
+| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) |   171ms |       6 |   22.3 |              0.079 |
+| zstd\_serialize(input\_ints, level = -5)               | 13.95ms |      71 |  273.4 |              0.122 |
+| zstd\_serialize(input\_ints, level = 3)                | 13.41ms |      73 |  284.5 |              0.101 |
+| zstd\_serialize(input\_ints, level = 10)               | 84.18ms |      12 |   45.3 |              0.083 |
+| zstd\_serialize(input\_ints, level = 22)               |   2.33s |       0 |    1.6 |              0.058 |
 
 ### Decompressing 1 million integers
 
 <details>
-
-<summary> Click here to show/hide benchmark code </summary>
+<summary>
+Click here to show/hide benchmark code
+</summary>
 
 ``` r
 res <- bench::mark(
@@ -154,18 +156,18 @@ res <- bench::mark(
 </details>
 
 | expression                                                  |   median | itr/sec |   MB/s |
-| :---------------------------------------------------------- | -------: | ------: | -----: |
-| unserialize(uncompressed)                                   | 456.96µs |    1801 | 8347.9 |
-| zstd\_unserialize(compressed\_lo)                           |   9.91ms |      96 |  385.0 |
-| zstd\_unserialize(compressed\_mid2)                         |   7.28ms |     139 |  523.9 |
-| zstd\_unserialize(compressed\_hi)                           |   4.57ms |     189 |  834.7 |
-| unserialize(memDecompress(compressed\_base, type = “gzip”)) |  14.96ms |      70 |  255.0 |
+|:------------------------------------------------------------|---------:|--------:|-------:|
+| unserialize(uncompressed)                                   | 543.91µs |    1718 | 7013.5 |
+| zstd\_unserialize(compressed\_lo)                           |    9.7ms |      98 |  393.5 |
+| zstd\_unserialize(compressed\_mid2)                         |   6.59ms |     134 |  579.0 |
+| zstd\_unserialize(compressed\_hi)                           |   4.44ms |     209 |  859.4 |
+| unserialize(memDecompress(compressed\_base, type = “gzip”)) |   12.2ms |      79 |  312.6 |
 
 ### Zstd “Single File” Libary
 
-  - To simplify the code within this package, it uses the ‘single file
+-   To simplify the code within this package, it uses the ‘single file
     library’ version of zstd
-  - To update this package when zstd is updated, create the single file
+-   To update this package when zstd is updated, create the single file
     library version
     1.  cd zstd/contrib/single\_file\_libs
     2.  sh create\_single\_file\_library.sh
@@ -179,18 +181,18 @@ For a more general solution to fast serialization of R objects, see the
 [fst](https://github.com/fstpackage/fst) or
 [qs](https://cran.r-project.org/package=qs) packages.
 
-  - [lz4](https://github.com/lz4/lz4) and
+-   [lz4](https://github.com/lz4/lz4) and
     [zstd](https://github.com/facebook/zstd) - both by Yann Collet
-  - [fst](https://github.com/fstpackage/fst) for serialisation of
+-   [fst](https://github.com/fstpackage/fst) for serialisation of
     data.frames using lz4 and zstd
-  - [qs](https://cran.r-project.org/package=qs) for fast serialization
+-   [qs](https://cran.r-project.org/package=qs) for fast serialization
     of arbitrary R objects with lz4 and zstd
 
 ## Acknowledgements
 
-  - Yann Collett for releasing, maintaining and advancing
+-   Yann Collett for releasing, maintaining and advancing
     [lz4](https://github.com/lz4/lz4) and
     [zstd](https://github.com/facebook/zstd)
-  - R Core for developing and maintaining such a wonderful language.
-  - CRAN maintainers, for patiently shepherding packages onto CRAN and
+-   R Core for developing and maintaining such a wonderful language.
+-   CRAN maintainers, for patiently shepherding packages onto CRAN and
     maintaining the repository
