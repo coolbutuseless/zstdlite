@@ -15,7 +15,8 @@
 #include "calc-size-robust.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Serialize an R object
+// Serialize an R object to a buffer of fixed size and then compress
+// the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_) {
 
@@ -87,8 +88,7 @@ SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_) {
   // Allocate more bytes than necessary so that there is a minimal header
   // at the front of the compressed data with
   //  - 3 bytes: magic bytes: LZ4
-  //  - 1 byte: SEXP type
-  //
+  //  - 1 byte: unused
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   int magic_length = 4; // magic bytes + SEXP type
   SEXP rdst = PROTECT(allocVector(RAWSXP, num_compressed_bytes + magic_length));
@@ -99,12 +99,12 @@ SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_) {
   memcpy(rdstp + magic_length, dst, num_compressed_bytes);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Set 3 magic bytes for the header, and 1 byte for ndims + sexp type
+  // Set 3 magic bytes for the header, and 1 unused byte
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   rdstp[0] = 'Z'; /* 'ZST' */
   rdstp[1] = 'S'; /* 'ZST' */
   rdstp[2] = 'T'; /* 'ZST' */
-  rdstp[3] =  0;    /* Store SEXP type here */
+  rdstp[3] =  0;  /* Unused */
 
 
   // Free all the memory
@@ -134,7 +134,7 @@ SEXP zstd_unserialize_(SEXP src_) {
   unsigned char *src = (unsigned char *)RAW(src_);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Check the magic bytes are correct i.e. there is a header with length info
+  // Check the magic bytes are correct
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (src[0] != 'Z' | src[1] != 'S' | src[2] != 'T') {
     error("zstd_decompress(): Buffer must be ZSTD data compressed with 'zstdlite'. 'ZST' expected as header, but got - '%c%c%c'",
@@ -144,20 +144,18 @@ SEXP zstd_unserialize_(SEXP src_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Get the SEXP type and the number of dimensions
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int magic_length = 4;       // 3 magic bytes + SEXP type
-
+  int magic_length = 4; // 3 magic bytes + 1 Unused byte
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Find the number of bytes of compressed data in the frame
   // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int compressedSize = ZSTD_findFrameCompressedSize(src + magic_length, length(src_)); // TODO: '- magic_length'
+  int compressedSize = ZSTD_findFrameCompressedSize(src + magic_length, length(src_));
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Determine the final decompressed size in number of bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   int dstCapacity = (int)ZSTD_getFrameContentSize(src + magic_length, compressedSize);
-
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create a decompression buffer of the exact required size

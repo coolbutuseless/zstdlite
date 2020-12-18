@@ -12,6 +12,24 @@
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// This file contains code for a 'dummy' serialization target.
+//
+// When serializing to this dummy target, only the count of the total number
+// of bytes is kept.
+//
+// This is a very very fast operation.
+//
+// This dummy serializtion target is used to count the bytes so that the
+// actual serialization only has to use a statically sized buffer.
+// This avoids having to use a dynamically resizeable buffer and thus actually
+// saves some time by not having to realloc memory when resizing.
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Write a byte into the buffer at the current location.
 // The actual buffer is encapsulated as part of the stream structure, so you
 // have to extract it first

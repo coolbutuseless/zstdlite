@@ -1,7 +1,7 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// The data buffer.
-// Needs total length and pos to keep track of how much data it contains
+// A data buffer of constant size
+// Needs total length and pos to keep track of how much data it currently contains
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 typedef struct {
   R_xlen_t length;
