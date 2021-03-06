@@ -34,7 +34,7 @@ it does compress data, and it is pretty fast.
 For rock solid general solutions to fast serialization of R objects, see the 
 [fst](https://github.com/fstpackage/fst) or [qs](https://cran.r-project.org/package=qs) packages.
 
-[zstd](https://github.com/facebook/zstd) code provided with this package is v1.4.7.
+[zstd](https://github.com/facebook/zstd) code provided with this package is v1.4.9.
 
 ## What's in the box
 

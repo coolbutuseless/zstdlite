@@ -54,13 +54,10 @@ SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_) {
   int dstCapacity  = ZSTD_compressBound(srcSize);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Create a temporary buffer to hold anything up to this size
+  // Allocate a raw R vector to hold anything up to this size
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  char *dst;
-  dst = (char *)malloc(dstCapacity);
-  if (!dst) {
-    error("Couldn't allocate compression buffer of size: %i\n", dstCapacity);
-  }
+  SEXP rdst = PROTECT(allocVector(RAWSXP, dstCapacity));
+  char *dst = (char *)RAW(rdst);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Compress the data into the temporary buffer
@@ -83,29 +80,14 @@ SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_) {
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Allocate a raw R vector of the exact length hold the compressed data
-  // and memcpy just the compressed bytes into it.
-  // Allocate more bytes than necessary so that there is a minimal header
-  // at the front of the compressed data with
-  //  - 3 bytes: magic bytes: LZ4
-  //  - 1 byte: unused
+  // Truncate the user-viewable size of the RAW vector
+  // Requires: R_VERSION >= R_Version(3, 4, 0)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int magic_length = 4; // magic bytes + SEXP type
-  SEXP rdst = PROTECT(allocVector(RAWSXP, num_compressed_bytes + magic_length));
-  char *rdstp = (char *)RAW(rdst);
-
-
-
-  memcpy(rdstp + magic_length, dst, num_compressed_bytes);
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Set 3 magic bytes for the header, and 1 unused byte
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  rdstp[0] = 'Z'; /* 'ZST' */
-  rdstp[1] = 'S'; /* 'ZST' */
-  rdstp[2] = 'T'; /* 'ZST' */
-  rdstp[3] =  0;  /* Unused */
-
+  if (num_compressed_bytes < dstCapacity) {
+    SETLENGTH(rdst, num_compressed_bytes);
+    SET_TRUELENGTH(rdst, dstCapacity);
+    SET_GROWABLE_BIT(rdst);
+  }
 
   // Free all the memory
   free(buf->data);
@@ -134,28 +116,15 @@ SEXP zstd_unserialize_(SEXP src_) {
   unsigned char *src = (unsigned char *)RAW(src_);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Check the magic bytes are correct
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (src[0] != 'Z' | src[1] != 'S' | src[2] != 'T') {
-    error("zstd_decompress(): Buffer must be ZSTD data compressed with 'zstdlite'. 'ZST' expected as header, but got - '%c%c%c'",
-          src[0], src[1], src[2]);
-  }
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Get the SEXP type and the number of dimensions
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int magic_length = 4; // 3 magic bytes + 1 Unused byte
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Find the number of bytes of compressed data in the frame
   // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int compressedSize = ZSTD_findFrameCompressedSize(src + magic_length, length(src_));
+  int compressedSize = ZSTD_findFrameCompressedSize(src, length(src_));
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Determine the final decompressed size in number of bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int dstCapacity = (int)ZSTD_getFrameContentSize(src + magic_length, compressedSize);
+  int dstCapacity = (int)ZSTD_getFrameContentSize(src, compressedSize);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create a decompression buffer of the exact required size
@@ -165,7 +134,7 @@ SEXP zstd_unserialize_(SEXP src_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Decompress
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int status = ZSTD_decompress(dst, dstCapacity, src + magic_length, compressedSize);
+  int status = ZSTD_decompress(dst, dstCapacity, src, compressedSize);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Watch for decompression errors

@@ -23,7 +23,7 @@ the [fst](https://github.com/fstpackage/fst) or
 [qs](https://cran.r-project.org/package=qs) packages.
 
 [zstd](https://github.com/facebook/zstd) code provided with this package
-is v1.4.7.
+is v1.4.9.
 
 ## What’s in the box
 
@@ -54,14 +54,14 @@ buf <- zstd_serialize(arr)
 length(buf) # Number of bytes
 ```
 
-    #> [1] 120
+    #> [1] 115
 
 ``` r
 # compression ratio
 length(buf)/as.numeric(lobstr::obj_size(arr))
 ```
 
-    #> [1] 0.3409091
+    #> [1] 0.3267045
 
 ``` r
 zstd_unserialize(buf)
@@ -124,16 +124,18 @@ res <- bench::mark(
 )
 ```
 
+    #> Warning: Some expressions had a GC in every iteration; so filtering is disabled.
+
 </details>
 
 | expression                                             |   median | itr/sec |   MB/s | compression\_ratio |
 |:-------------------------------------------------------|---------:|--------:|-------:|-------------------:|
-| serialize(input\_ints, NULL, xdr = FALSE)              |   1.58ms |     582 | 2408.6 |              1.000 |
-| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 178.58ms |       6 |   21.4 |              0.079 |
-| zstd\_serialize(input\_ints, level = -5)               |  14.05ms |      70 |  271.5 |              0.122 |
-| zstd\_serialize(input\_ints, level = 3)                |  13.84ms |      71 |  275.6 |              0.101 |
-| zstd\_serialize(input\_ints, level = 10)               |  83.93ms |      12 |   45.5 |              0.083 |
-| zstd\_serialize(input\_ints, level = 22)               |    2.32s |       0 |    1.6 |              0.058 |
+| serialize(input\_ints, NULL, xdr = FALSE)              |   3.26ms |     206 | 1169.7 |              1.000 |
+| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 200.17ms |       5 |   19.1 |              0.079 |
+| zstd\_serialize(input\_ints, level = -5)               |  14.53ms |      64 |  262.5 |              0.122 |
+| zstd\_serialize(input\_ints, level = 3)                |  14.34ms |      63 |  266.0 |              0.101 |
+| zstd\_serialize(input\_ints, level = 10)               |  97.82ms |      10 |   39.0 |              0.083 |
+| zstd\_serialize(input\_ints, level = 22)               |    2.59s |       0 |    1.5 |              0.058 |
 
 ### Decompressing 1 million integers
 
@@ -157,11 +159,11 @@ res <- bench::mark(
 
 | expression                                                  |   median | itr/sec |   MB/s |
 |:------------------------------------------------------------|---------:|--------:|-------:|
-| unserialize(uncompressed)                                   | 476.71µs |    2025 | 8002.2 |
-| zstd\_unserialize(compressed\_lo)                           |   8.84ms |     109 |  431.3 |
-| zstd\_unserialize(compressed\_mid2)                         |   6.07ms |     156 |  628.2 |
-| zstd\_unserialize(compressed\_hi)                           |   4.28ms |     227 |  891.0 |
-| unserialize(memDecompress(compressed\_base, type = “gzip”)) |  12.46ms |      80 |  306.3 |
+| unserialize(uncompressed)                                   | 574.18µs |    1493 | 6643.7 |
+| zstd\_unserialize(compressed\_lo)                           |  10.31ms |      97 |  369.8 |
+| zstd\_unserialize(compressed\_mid2)                         |    7.5ms |     139 |  508.8 |
+| zstd\_unserialize(compressed\_hi)                           |   5.06ms |     200 |  753.6 |
+| unserialize(memDecompress(compressed\_base, type = “gzip”)) |   14.5ms |      64 |  263.0 |
 
 ### Zstd “Single File” Libary
 

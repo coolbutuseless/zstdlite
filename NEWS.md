@@ -1,4 +1,13 @@
 
+# zstdlite 0.2.2 2021-03-06
+
+* Update to zstd v1.4.9
+* Drop the `magic` header which was used to store the text `ZSTD` as an 
+  identifier for the type of data contained.  It's now
+  up to the user to ensure that the raw strings fed to `deserialize()` are
+  appropriate.
+* refactor approach in C to remove a memory allocation.
+
 # zstdlite 0.2.1 2020-12-17
 
 * Update to zstd v1.4.7
