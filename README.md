@@ -15,15 +15,12 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 [zstd](https://github.com/facebook/zstd) library for performing
 in-memory compression of R objects.
 
-This is mainly an exploratory package figuring out some of R internals,
-but it does compress data, and it is pretty fast.
-
 For rock solid general solutions to fast serialization of R objects, see
 the [fst](https://github.com/fstpackage/fst) or
 [qs](https://cran.r-project.org/package=qs) packages.
 
 [zstd](https://github.com/facebook/zstd) code provided with this package
-is v1.4.9.
+is v1.5.0.
 
 ## What’s in the box
 
@@ -124,18 +121,16 @@ res <- bench::mark(
 )
 ```
 
-    #> Warning: Some expressions had a GC in every iteration; so filtering is disabled.
-
 </details>
 
 | expression                                             |   median | itr/sec |   MB/s | compression\_ratio |
 |:-------------------------------------------------------|---------:|--------:|-------:|-------------------:|
-| serialize(input\_ints, NULL, xdr = FALSE)              |   3.26ms |     206 | 1169.7 |              1.000 |
-| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 200.17ms |       5 |   19.1 |              0.079 |
-| zstd\_serialize(input\_ints, level = -5)               |  14.53ms |      64 |  262.5 |              0.122 |
-| zstd\_serialize(input\_ints, level = 3)                |  14.34ms |      63 |  266.0 |              0.101 |
-| zstd\_serialize(input\_ints, level = 10)               |  97.82ms |      10 |   39.0 |              0.083 |
-| zstd\_serialize(input\_ints, level = 22)               |    2.59s |       0 |    1.5 |              0.058 |
+| serialize(input\_ints, NULL, xdr = FALSE)              |   3.15ms |     304 | 1209.9 |              1.000 |
+| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 175.81ms |       6 |   21.7 |              0.079 |
+| zstd\_serialize(input\_ints, level = -5)               |  13.77ms |      72 |  277.1 |              0.122 |
+| zstd\_serialize(input\_ints, level = 3)                |  13.56ms |      74 |  281.4 |              0.101 |
+| zstd\_serialize(input\_ints, level = 10)               |  95.12ms |      10 |   40.1 |              0.083 |
+| zstd\_serialize(input\_ints, level = 22)               |    2.41s |       0 |    1.6 |              0.058 |
 
 ### Decompressing 1 million integers
 
@@ -159,11 +154,11 @@ res <- bench::mark(
 
 | expression                                                  |   median | itr/sec |   MB/s |
 |:------------------------------------------------------------|---------:|--------:|-------:|
-| unserialize(uncompressed)                                   | 574.18µs |    1493 | 6643.7 |
-| zstd\_unserialize(compressed\_lo)                           |  10.31ms |      97 |  369.8 |
-| zstd\_unserialize(compressed\_mid2)                         |    7.5ms |     139 |  508.8 |
-| zstd\_unserialize(compressed\_hi)                           |   5.06ms |     200 |  753.6 |
-| unserialize(memDecompress(compressed\_base, type = “gzip”)) |   14.5ms |      64 |  263.0 |
+| unserialize(uncompressed)                                   | 565.98µs |    1573 | 6740.0 |
+| zstd\_unserialize(compressed\_lo)                           |   8.79ms |     107 |  433.9 |
+| zstd\_unserialize(compressed\_mid2)                         |   7.56ms |     155 |  504.5 |
+| zstd\_unserialize(compressed\_hi)                           |   3.93ms |     229 |  970.1 |
+| unserialize(memDecompress(compressed\_base, type = “gzip”)) |  12.48ms |      78 |  305.8 |
 
 ### Zstd “Single File” Libary
 
@@ -171,10 +166,10 @@ res <- bench::mark(
     library’ version of zstd
 -   To update this package when zstd is updated, create the single file
     library version
-    1.  cd zstd/contrib/single\_file\_libs
+    1.  cd zstd/build/single\_file\_libs
     2.  sh create\_single\_file\_library.sh
     3.  Wait…..
-    4.  copy zstd/contrib/single\_file\_libs/zstd.c into zstdlite/src
+    4.  copy zstd/built/single\_file\_libs/zstd.c into zstdlite/src
     5.  copy zstd/lib/zstd.h into zstdlite/src
 
 ## Related Software

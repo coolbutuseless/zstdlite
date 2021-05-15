@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
 Title: In-memory Compression with Zstandard
-Version: 0.2.2
+Version: 0.2.3
 Authors@R: c(
     person(given = "mikefc",
            email = "mikefc@coolbutuseless.com", 
