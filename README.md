@@ -51,14 +51,14 @@ buf <- zstd_serialize(arr)
 length(buf) # Number of bytes
 ```
 
-    #> [1] 115
+    #> [1] 117
 
 ``` r
 # compression ratio
 length(buf)/as.numeric(lobstr::obj_size(arr))
 ```
 
-    #> [1] 0.3267045
+    #> [1] 0.3323864
 
 ``` r
 zstd_unserialize(buf)
@@ -121,16 +121,18 @@ res <- bench::mark(
 )
 ```
 
+    #> Warning: Some expressions had a GC in every iteration; so filtering is disabled.
+
 </details>
 
-| expression                                             |   median | itr/sec |   MB/s | compression\_ratio |
-|:-------------------------------------------------------|---------:|--------:|-------:|-------------------:|
-| serialize(input\_ints, NULL, xdr = FALSE)              |   3.15ms |     304 | 1209.9 |              1.000 |
-| memCompress(serialize(input\_ints, NULL, xdr = FALSE)) | 175.81ms |       6 |   21.7 |              0.079 |
-| zstd\_serialize(input\_ints, level = -5)               |  13.77ms |      72 |  277.1 |              0.122 |
-| zstd\_serialize(input\_ints, level = 3)                |  13.56ms |      74 |  281.4 |              0.101 |
-| zstd\_serialize(input\_ints, level = 10)               |  95.12ms |      10 |   40.1 |              0.083 |
-| zstd\_serialize(input\_ints, level = 22)               |    2.41s |       0 |    1.6 |              0.058 |
+| expression                                            |   median | itr/sec |   MB/s | compression_ratio |
+|:------------------------------------------------------|---------:|--------:|-------:|------------------:|
+| serialize(input_ints, NULL, xdr = FALSE)              |   3.62ms |     177 | 1053.9 |             1.000 |
+| memCompress(serialize(input_ints, NULL, xdr = FALSE)) | 184.41ms |       5 |   20.7 |             0.079 |
+| zstd_serialize(input_ints, level = -5)                |  65.03ms |      15 |   58.7 |             0.229 |
+| zstd_serialize(input_ints, level = 3)                 |  85.24ms |      12 |   44.8 |             0.101 |
+| zstd_serialize(input_ints, level = 10)                | 702.61ms |       1 |    5.4 |             0.080 |
+| zstd_serialize(input_ints, level = 22)                |   13.02s |       0 |    0.3 |             0.058 |
 
 ### Decompressing 1 million integers
 
@@ -152,13 +154,13 @@ res <- bench::mark(
 
 </details>
 
-| expression                                                  |   median | itr/sec |   MB/s |
-|:------------------------------------------------------------|---------:|--------:|-------:|
-| unserialize(uncompressed)                                   | 565.98µs |    1573 | 6740.0 |
-| zstd\_unserialize(compressed\_lo)                           |   8.79ms |     107 |  433.9 |
-| zstd\_unserialize(compressed\_mid2)                         |   7.56ms |     155 |  504.5 |
-| zstd\_unserialize(compressed\_hi)                           |   3.93ms |     229 |  970.1 |
-| unserialize(memDecompress(compressed\_base, type = “gzip”)) |  12.48ms |      78 |  305.8 |
+| expression                                                 |  median | itr/sec |   MB/s |
+|:-----------------------------------------------------------|--------:|--------:|-------:|
+| unserialize(uncompressed)                                  | 604.4µs |    1417 | 6311.8 |
+| zstd_unserialize(compressed_lo)                            |  42.3ms |      23 |   90.1 |
+| zstd_unserialize(compressed_mid2)                          |  29.2ms |      34 |  130.6 |
+| zstd_unserialize(compressed_hi)                            |  18.1ms |      58 |  210.6 |
+| unserialize(memDecompress(compressed_base, type = “gzip”)) |  14.5ms |      68 |  263.2 |
 
 ### Zstd “Single File” Libary
 
@@ -166,10 +168,10 @@ res <- bench::mark(
     library’ version of zstd
 -   To update this package when zstd is updated, create the single file
     library version
-    1.  cd zstd/build/single\_file\_libs
-    2.  sh create\_single\_file\_library.sh
+    1.  cd zstd/build/single_file_libs
+    2.  sh create_single_file_library.sh
     3.  Wait…..
-    4.  copy zstd/built/single\_file\_libs/zstd.c into zstdlite/src
+    4.  copy zstd/built/single_file_libs/zstd.c into zstdlite/src
     5.  copy zstd/lib/zstd.h into zstdlite/src
 
 ## Related Software
