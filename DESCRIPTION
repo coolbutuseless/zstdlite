@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
 Title: In-memory Compression with Zstandard
-Version: 0.2.3
+Version: 0.2.4
 Authors@R: c(
     person(given = "mikefc",
            email = "mikefc@coolbutuseless.com", 
@@ -19,7 +19,7 @@ BugReports: https://github.com/coolbutuseless/zstdlite/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Suggests: 
     testthat
 Depends:

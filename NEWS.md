@@ -1,5 +1,9 @@
 
 
+# zstdlite 0.2.4 2022-01-23
+
+* Update to zstd 1.5.2
+
 # zstdlite 0.2.3 2021-05-16
 
 * Update to zstd 1.5.0
