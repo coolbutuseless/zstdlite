@@ -9,27 +9,27 @@
 
 	// Install Dev Container Features. More info: https://containers.dev/features
 	"features": {
-		"ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {},
+		"ghcr.io/rocker-org/devcontainer-features/quarto-cli:1": {} //,
 		// Install JupyterLab and IRkernel.
 		// More info: https://github.com/rocker-org/devcontainer-templates/tree/main/src/r-ver
-		"ghcr.io/rocker-org/devcontainer-features/r-rig:1": {
-			"version": "none",
-			"installJupyterlab": true
-		}
+		//"ghcr.io/rocker-org/devcontainer-features/r-rig:1": {
+		//	"version": "none",
+		//	"installJupyterlab": true
+		//}
 	},
 
 	"customizations": {
-		"vscode": {
-			"extensions": [
-				// Add Jupyter and Python vscode extensions
-				"ms-toolsai.jupyter",
-				"ms-toolsai.jupyter-renderers",
-				"ms-python.python",
-				"ms-python.vscode-pylance",
-				"vsls-contrib.codetour",
-				"GitHub.copilot"
-			]
-		}
+		//"vscode": {
+		//	"extensions": [
+		//		// Add Jupyter and Python vscode extensions
+		//		"ms-toolsai.jupyter",
+		//		"ms-toolsai.jupyter-renderers",
+		//		"ms-python.python",
+		//		"ms-python.vscode-pylance",
+		//		"vsls-contrib.codetour",
+		//		"GitHub.copilot"
+		//	]
+		//}
 	},
 
 	// Forward Jupyter and RStudio ports
@@ -39,12 +39,12 @@
 			"label": "Rstudio",
 			"requireLocalPort": true,
 			"onAutoForward": "ignore"
-		},
-		"8888": {
-			"label": "Jupyter",
-			"requireLocalPort": true,
-			"onAutoForward": "ignore"
-		}
+		} //,
+		//"8888": {
+		//	"label": "Jupyter",
+		//	"requireLocalPort": true,
+		//	"onAutoForward": "ignore"
+		//}
 	},
 
 	// Use 'postAttachCommand' to run commands after the container is started.
@@ -53,4 +53,3 @@
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root
 	// "remoteUser": "root"
 }
-
