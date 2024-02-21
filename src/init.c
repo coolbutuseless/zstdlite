@@ -2,8 +2,8 @@
 #include <R.h>
 #include <Rinternals.h>
 
-extern SEXP zstd_serialize_();
-extern SEXP zstd_unserialize_();
+extern SEXP zstd_serialize_(SEXP robj_, SEXP level_);
+extern SEXP zstd_unserialize_(SEXP raw_vec_);
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
