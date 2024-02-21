@@ -5,6 +5,9 @@
 extern SEXP zstd_serialize_(SEXP robj_, SEXP level_);
 extern SEXP zstd_unserialize_(SEXP raw_vec_);
 
+extern SEXP zstd_compress_(SEXP raw_vec_, SEXP level_);
+extern SEXP zstd_decompress_(SEXP raw_vec_);
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // .C      R_CMethodDef
@@ -13,6 +16,8 @@ extern SEXP zstd_unserialize_(SEXP raw_vec_);
 static const R_CallMethodDef CEntries[] = {
   {"zstd_serialize_"  , (DL_FUNC) &zstd_serialize_  , 2},
   {"zstd_unserialize_", (DL_FUNC) &zstd_unserialize_, 1},
+  {"zstd_compress_"   , (DL_FUNC) &zstd_compress_   , 2},
+  {"zstd_decompress_" , (DL_FUNC) &zstd_decompress_ , 1},
   {NULL, NULL, 0}
 };
 

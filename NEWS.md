@@ -1,5 +1,9 @@
 
 
+# zstdlite 0.2.4.9000 2024-02-21
+
+* Add compress/decompress of raw vectors
+
 # zstdlite 0.2.4 2022-01-23
 
 * Update to zstd 1.5.2
