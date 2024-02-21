@@ -31,7 +31,7 @@ R objects.
 For rock solid general solutions to fast serialization of R objects, see the 
 [fst](https://github.com/fstpackage/fst) or [qs](https://cran.r-project.org/package=qs) packages.
 
-[zstd](https://github.com/facebook/zstd) code provided with this package is v1.5.0.
+[zstd](https://github.com/facebook/zstd) code provided with this package is v1.5.5.
 
 ## What's in the box
 
@@ -50,17 +50,34 @@ remotes::install_github('coolbutuseless/zstdlite')
 ## Basic usage of zstdlite
 
 ```{r}
-arr <- array(1:27, c(3, 3, 3))
-lobstr::obj_size(arr)
+lobstr::obj_size(mtcars)
 
 
-buf <- zstd_serialize(arr)
-length(buf) # Number of bytes
+buf <- zstd_serialize(mtcars)
+length(buf) # Number of compressed bytes
 
 # compression ratio
-length(buf)/as.numeric(lobstr::obj_size(arr))
+length(buf)/as.numeric(lobstr::obj_size(mtcars))
 
 zstd_unserialize(buf)
+```
+
+
+```{r echo=FALSE, eval=FALSE}
+library(qs)
+
+dat <- iris[sample(nrow(iris), 10000, TRUE),]
+lobstr::obj_size(dat)
+
+length(qserialize(dat))
+length(zstd_serialize(dat))
+
+res <- bench::mark(
+  qserialize(dat),
+  zstd_serialize(dat),
+  check = FALSE
+)
+
 ```
 
 
@@ -72,7 +89,7 @@ zstd_unserialize(buf)
 
 ```{r}
 library(zstdlite)
-library(lz4lite)
+# library(lz4lite)
 set.seed(1)
 
 N                 <- 1e6
