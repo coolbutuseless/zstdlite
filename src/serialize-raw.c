@@ -18,7 +18,7 @@
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_compress_(SEXP vec_, SEXP compressionLevel_) {
+SEXP zstd_compress_(SEXP vec_, SEXP compressionLevel_, SEXP num_threads_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Sanity check
@@ -47,6 +47,19 @@ SEXP zstd_compress_(SEXP vec_, SEXP compressionLevel_) {
 
   ZSTD_CCtx* cctx = ZSTD_createCCtx();
   ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, compressionLevel);
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Initialise multithreads if asked
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  int num_threads = asInteger(num_threads_);
+  if (num_threads > 1) {
+    size_t const r = ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, num_threads);
+    if (ZSTD_isError(r)) {
+      Rprintf ("Note: the linked libzstd library doesn't support multithreading. "
+                 "Reverting to single-thread mode. \n");
+    }
+  }
+  
   int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, RAW(vec_), length(vec_));
   ZSTD_freeCCtx(cctx);
 

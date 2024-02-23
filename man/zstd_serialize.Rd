@@ -5,7 +5,7 @@
 \alias{zstd_unserialize}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_serialize(robj, level = 3L)
+zstd_serialize(robj, level = 3L, num_threads = 1L)
 
 zstd_unserialize(raw_vec)
 }
@@ -13,6 +13,8 @@ zstd_unserialize(raw_vec)
 \item{robj}{Any R object understood by \code{base::serialize()}}
 
 \item{level}{compression level -5 to 22. Default: 3}
+
+\item{num_threads}{number of threads to use for compression}
 
 \item{raw_vec}{Raw vector containing a compressed serialized representation of
 an R object}

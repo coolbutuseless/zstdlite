@@ -15,5 +15,5 @@ test_that("roundtrip works for stream compression", {
   
   
   dat <- sample(1e6)
-  expect_identical(dat, zstd_unserialize(zstd_serialize_stream(dat, num_threads = 4)))
+  expect_identical(dat, zstd_unserialize(zstd_serialize_stream(dat, num_threads = 2)))
 })

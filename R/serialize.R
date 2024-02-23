@@ -7,13 +7,14 @@
 #' @param level compression level -5 to 22. Default: 3
 #' @param raw_vec Raw vector containing a compressed serialized representation of
 #'        an R object
+#' @param num_threads number of threads to use for compression
 #'
 #' @return serialized representation compressed into a raw byte vector
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_serialize <- function(robj, level = 3L) {
-  .Call('zstd_serialize_', robj, as.integer(level))
+zstd_serialize <- function(robj, level = 3L, num_threads = 1L) {
+  .Call('zstd_serialize_', robj, level, num_threads)
 }
 
 
@@ -34,13 +35,14 @@ zstd_unserialize <- function(raw_vec) {
 #'
 #' @param raw_vec raw vector
 #' @param level compression level -5 to 22. Default: 3
+#' @param num_threads number of threads to use for compression
 #'
 #' @return raw vector
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_compress <- function(raw_vec, level = 3L) {
-  .Call('zstd_compress_', raw_vec, level)
+zstd_compress <- function(raw_vec, level = 3L, num_threads = 1L) {
+  .Call('zstd_compress_', raw_vec, level, num_threads)
 }
 
 

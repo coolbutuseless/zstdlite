@@ -15,4 +15,10 @@ test_that("roundtrip works", {
   dat <- function(x) {3 + 7 + x}
   dat <- serialize(dat, NULL)
   expect_identical(dat, zstd_unserialize(zstd_serialize(dat)))
+  
+  
+  # Multithreading
+  dat <- sample(1e6)
+  dat <- serialize(dat, NULL)
+  expect_identical(dat, zstd_unserialize(zstd_serialize(dat, num_threads = 2)))
 })

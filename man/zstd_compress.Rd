@@ -4,12 +4,14 @@
 \alias{zstd_compress}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_compress(raw_vec, level = 3L)
+zstd_compress(raw_vec, level = 3L, num_threads = 1L)
 }
 \arguments{
 \item{raw_vec}{raw vector}
 
 \item{level}{compression level -5 to 22. Default: 3}
+
+\item{num_threads}{number of threads to use for compression}
 }
 \value{
 raw vector
