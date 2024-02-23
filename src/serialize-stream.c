@@ -12,6 +12,7 @@
 
 #include "zstd.h"
 #include "calc-size-robust.h"
+#include "cctx.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // A data buffer of constant size
@@ -92,15 +93,7 @@ void write_bytes_to_stream(R_outpstream_t stream, void *src, int length) {
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_serialize_stream_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_) {
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Sanitize the given compression level for zstandard
-  // Note: min level can be -(2^17), but everyone uses -5 as the minimum
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int compressionLevel = asInteger(compressionLevel_);
-  compressionLevel = compressionLevel < -5 ? -5 : compressionLevel;
-  compressionLevel = compressionLevel > 22 ? 22 : compressionLevel;
+SEXP zstd_serialize_stream_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_, SEXP cctx_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create the buffer for the serialized representation
@@ -113,23 +106,17 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  buf.cctx = ZSTD_createCCtx();
-  ZSTD_CCtx_setParameter(buf.cctx, ZSTD_c_compressionLevel, compressionLevel);
+  if (isNull(cctx_)) {
+    buf.cctx = init_cctx(asInteger(compressionLevel_), asInteger(num_threads_));
+  } else {
+    buf.cctx = external_ptr_to_zstd_context(cctx_);
+    ZSTD_CCtx_reset(buf.cctx, ZSTD_reset_session_only);
+  }
+  
+  
   int res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, num_serialized_bytes);
   if (ZSTD_isError(res)) {
     error("Error on pledge size\n");
-  }
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Initialise multithreads if asked
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int num_threads = asInteger(num_threads_);
-  if (num_threads > 1) {
-    size_t const r = ZSTD_CCtx_setParameter(buf.cctx, ZSTD_c_nbWorkers, num_threads);
-    if (ZSTD_isError(r)) {
-      Rprintf ("Note: the linked libzstd library doesn't support multithreading. "
-                 "Reverting to single-thread mode. \n");
-    }
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -182,7 +169,9 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_
     remaining_bytes = ZSTD_compressStream2(buf.cctx, &(buf.zstd_buffer), &input, ZSTD_e_end);
   } while (remaining_bytes > 0);
   
-  ZSTD_freeCCtx(buf.cctx);
+  if (isNull(cctx_)) {
+    ZSTD_freeCCtx(buf.cctx);
+  }
 
   int num_compressed_bytes = buf.zstd_buffer.pos;
   

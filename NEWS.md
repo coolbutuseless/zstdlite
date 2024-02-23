@@ -1,5 +1,15 @@
 
 
+
+# zstdlite 0.2.4.9001 2024-02-23
+
+* Streaming compression
+* Multithreaded compression
+* `ZSTD_cctx` can be created separately and passed as compression argument
+    * Enables re-use of same context 
+    * See `init_zstd_cctx()`
+
+
 # zstdlite 0.2.4.9000 2024-02-21
 
 * Add compress/decompress of raw vectors

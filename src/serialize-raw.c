@@ -13,12 +13,13 @@
 #include "zstd.h"
 #include "buffer-static.h"
 #include "calc-size-robust.h"
+#include "cctx.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_compress_(SEXP vec_, SEXP compressionLevel_, SEXP num_threads_) {
+SEXP zstd_compress_(SEXP vec_, SEXP compressionLevel_, SEXP num_threads_, SEXP cctx_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Sanity check
@@ -37,31 +38,20 @@ SEXP zstd_compress_(SEXP vec_, SEXP compressionLevel_, SEXP num_threads_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP rdst = PROTECT(allocVector(RAWSXP, dstCapacity));
   char *dst = (char *)RAW(rdst);
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Compress the data into the temporary buffer
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int compressionLevel = asInteger(compressionLevel_);
-  compressionLevel = compressionLevel < -5 ? -5 : compressionLevel;
-  compressionLevel = compressionLevel > 22 ? 22 : compressionLevel;
-
-  ZSTD_CCtx* cctx = ZSTD_createCCtx();
-  ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, compressionLevel);
   
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Initialise multithreads if asked
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int num_threads = asInteger(num_threads_);
-  if (num_threads > 1) {
-    size_t const r = ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, num_threads);
-    if (ZSTD_isError(r)) {
-      Rprintf ("Note: the linked libzstd library doesn't support multithreading. "
-                 "Reverting to single-thread mode. \n");
-    }
+  ZSTD_CCtx* cctx;
+  if (isNull(cctx_)) {
+    cctx = init_cctx(asInteger(compressionLevel_), asInteger(num_threads_));
+  } else {
+    cctx = external_ptr_to_zstd_context(cctx_);
+    ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
   }
-  
+
   int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, RAW(vec_), length(vec_));
-  ZSTD_freeCCtx(cctx);
+  
+  if (isNull(cctx_)) {
+    ZSTD_freeCCtx(cctx);
+  }
 
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

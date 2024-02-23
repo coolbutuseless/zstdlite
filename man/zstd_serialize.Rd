@@ -5,7 +5,7 @@
 \alias{zstd_unserialize}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_serialize(robj, level = 3L, num_threads = 1L)
+zstd_serialize(robj, level = 3L, num_threads = 1L, cctx = NULL)
 
 zstd_unserialize(raw_vec)
 }
@@ -15,6 +15,9 @@ zstd_unserialize(raw_vec)
 \item{level}{compression level -5 to 22. Default: 3}
 
 \item{num_threads}{number of threads to use for compression}
+
+\item{cctx}{ZSTD C Context created by \code{init_zstd_cctx()} or NULL.
+Default: NULL will create a context on the fly}
 
 \item{raw_vec}{Raw vector containing a compressed serialized representation of
 an R object}

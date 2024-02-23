@@ -1,16 +1,15 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Serialize arbitrary objects to a compressed stream of bytes using Zstandard
 #'
+#' @inheritParams zstd_serialize
 #' @param robj Any R object understood by \code{base::serialize()}
-#' @param level compression level -5 to 22. Default: 3
-#' @param num_threads number of threads to use for compression
 #'
 #' @return serialized representation compressed into a raw byte vector
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_serialize_stream <- function(robj, level = 3L, num_threads = 1L) {
-  .Call('zstd_serialize_stream_', robj, level, num_threads = num_threads)
+zstd_serialize_stream <- function(robj, level = 3L, num_threads = 1L, cctx = NULL) {
+  .Call('zstd_serialize_stream_', robj, level, num_threads, cctx)
 }
 
 

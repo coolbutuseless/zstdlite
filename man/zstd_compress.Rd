@@ -4,7 +4,7 @@
 \alias{zstd_compress}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_compress(raw_vec, level = 3L, num_threads = 1L)
+zstd_compress(raw_vec, level = 3L, num_threads = 1L, cctx = NULL)
 }
 \arguments{
 \item{raw_vec}{raw vector}
@@ -12,6 +12,9 @@ zstd_compress(raw_vec, level = 3L, num_threads = 1L)
 \item{level}{compression level -5 to 22. Default: 3}
 
 \item{num_threads}{number of threads to use for compression}
+
+\item{cctx}{ZSTD C Context created by \code{init_zstd_cctx()} or NULL.
+Default: NULL will create a context on the fly}
 }
 \value{
 raw vector
