@@ -139,8 +139,9 @@ SEXP zstd_unserialize_(SEXP src_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Watch for decompression errors
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (status <= 0) {
-    error("zstd_unserialize(): De-compression error. Status: %i", status);
+  if (ZSTD_isError(status)) {
+    error("zstd_unserialize(): De-compression error. Status: %i = %s", status, 
+          ZSTD_getErrorName(status));
   }
 
 

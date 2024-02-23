@@ -3,5 +3,6 @@
 export(zstd_compress)
 export(zstd_decompress)
 export(zstd_serialize)
+export(zstd_serialize_stream)
 export(zstd_unserialize)
 useDynLib(zstdlite, .registration=TRUE)
