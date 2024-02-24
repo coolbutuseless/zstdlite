@@ -13,6 +13,10 @@
 #include "zstd.h"
 #include "cctx.h"
 
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Initialise a cctx from C
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ZSTD_CCtx *init_cctx(int level, int num_threads) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,7 +40,7 @@ ZSTD_CCtx *init_cctx(int level, int num_threads) {
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Initialise multithreads if asked
+  // Initialise multi-threading if asked
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (num_threads > 1) {
     res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, num_threads);
@@ -54,9 +58,9 @@ ZSTD_CCtx *init_cctx(int level, int num_threads) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Unpack an external pointer to a C 'ZSTD_CCtx *'
+// Unpack an R external pointer to a C pointer 'ZSTD_CCtx *'
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ZSTD_CCtx * external_ptr_to_zstd_context(SEXP cctx_) {
+ZSTD_CCtx * external_ptr_to_zstd_cctx(SEXP cctx_) {
   if (TYPEOF(cctx_) == EXTPTRSXP) {
     ZSTD_CCtx *cctx = (ZSTD_CCtx *)R_ExternalPtrAddr(cctx_);
     if (cctx != NULL) {
@@ -75,9 +79,7 @@ ZSTD_CCtx * external_ptr_to_zstd_context(SEXP cctx_) {
 // This function will be called when 'cctx' object gets 
 // garbage collected.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-static void zstd_context_finalizer(SEXP cctx_) {
-  
-  // Rprintf("zstd_context_finalizer !!!!\n");
+static void zstd_cctx_finalizer(SEXP cctx_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack the pointer 
@@ -89,7 +91,7 @@ static void zstd_context_finalizer(SEXP cctx_) {
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Free ZSTD_cctx pointer, Clear pointer to guard against re-use
+  // Free ZSTD_Cctx pointer, Clear pointer to guard against re-use
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_freeCCtx(cctx);
   R_ClearExternalPtr(cctx_);
@@ -98,15 +100,43 @@ static void zstd_context_finalizer(SEXP cctx_) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Serialize an R object to a buffer of fixed size and then compress
-// the buffer using zstd
+// Initialize a ZSTD_Cctx pointer from R
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP init_cctx_(SEXP compressionLevel_, SEXP num_threads_) {
+SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP dict_) {
 
-  ZSTD_CCtx* cctx = init_cctx(asInteger(compressionLevel_), asInteger(num_threads_));
+  ZSTD_CCtx* cctx = init_cctx(asInteger(level_), asInteger(num_threads_));
 
+  if (!isNull(dict_)) {
+    size_t status;
+    if (TYPEOF(dict_) == RAWSXP) {
+      status = ZSTD_CCtx_loadDictionary(cctx, RAW(dict_), length(dict_));
+    } else if (TYPEOF(dict_) == STRSXP) {
+      const char *filename = CHAR(STRING_ELT(dict_, 0));
+      FILE *fp = fopen(filename, "rb");
+      if (fp == NULL) error("Couldn't open file '%s'", filename);
+      fseek(fp, 0, SEEK_END);
+      long fsize = ftell(fp);
+      fseek(fp, 0, SEEK_SET);  /* same as rewind(f); */
+      
+      unsigned char *dict = malloc(fsize);
+      if (dict == NULL) error("Couldn't allocate for reading dict from file");
+      fread(dict, fsize, 1, fp);
+      fclose(fp);
+      
+      status = ZSTD_CCtx_loadDictionary(cctx, dict, fsize);
+      
+      free(dict);
+    } else {
+      error("init_cctx(): 'dict' must be a raw vector or a filename");
+    }
+    if (ZSTD_isError(status)) {
+      error("init_cctx(): Error initialising dict");
+    }
+  }
+  
+  
   SEXP cctx_ = PROTECT(R_MakeExternalPtr(cctx, R_NilValue, R_NilValue));
-  R_RegisterCFinalizer(cctx_, zstd_context_finalizer);
+  R_RegisterCFinalizer(cctx_, zstd_cctx_finalizer);
   Rf_setAttrib(cctx_, R_ClassSymbol, Rf_mkString("ZSTD_CCtx"));
   UNPROTECT(1);
   

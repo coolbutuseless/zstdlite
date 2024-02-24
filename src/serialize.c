@@ -14,12 +14,13 @@
 #include "buffer-static.h"
 #include "calc-size-robust.h"
 #include "cctx.h"
+#include "dctx.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_, SEXP cctx_) {
+SEXP zstd_serialize_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
 
   // Create the buffer for the serialized representation
   // See also: `expand_buffer()` which re-allocates the memory buffer if
@@ -62,9 +63,9 @@ SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_, SEXP 
 
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx(asInteger(compressionLevel_), asInteger(num_threads_));
+    cctx = init_cctx(asInteger(level_), asInteger(num_threads_));
   } else {
-    cctx = external_ptr_to_zstd_context(cctx_);
+    cctx = external_ptr_to_zstd_cctx(cctx_);
     ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
   }
   
@@ -103,7 +104,7 @@ SEXP zstd_serialize_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_, SEXP 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_unserialize_(SEXP src_) {
+SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Sanity check
@@ -127,16 +128,23 @@ SEXP zstd_unserialize_(SEXP src_) {
   // Determine the final decompressed size in number of bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   int dstCapacity = (int)ZSTD_getFrameContentSize(src, compressedSize);
-
+ 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create a decompression buffer of the exact required size
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   void *dst = malloc(dstCapacity);
 
+  size_t status;
+  if (isNull(dctx_)) {
+    status = ZSTD_decompress(dst, dstCapacity, src, compressedSize);
+  } else {
+    ZSTD_DCtx * dctx = external_ptr_to_zstd_dctx(dctx_);
+    status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
+  }
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Decompress
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int status = ZSTD_decompress(dst, dstCapacity, src, compressedSize);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Watch for decompression errors

@@ -28,10 +28,13 @@ library(zstdlite)
  [zstd](https://github.com/facebook/zstd) library for performing in-memory compression of 
 R objects.
 
-For rock solid general solutions to fast serialization of R objects, see the 
-[fst](https://github.com/fstpackage/fst) or [qs](https://cran.r-project.org/package=qs) packages.
 
 [zstd](https://github.com/facebook/zstd) code provided with this package is v1.5.5.
+
+# ToDo before release
+
+* More checks that decompression buffer is valid zstd object
+
 
 ## What's in the box
 

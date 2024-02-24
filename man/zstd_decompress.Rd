@@ -4,10 +4,12 @@
 \alias{zstd_decompress}
 \title{Decompress raw bytes}
 \usage{
-zstd_decompress(raw_vec)
+zstd_decompress(raw_vec, dctx = NULL)
 }
 \arguments{
 \item{raw_vec}{raw vector}
+
+\item{dctx}{ZSTD Decompression Context}
 }
 \description{
 Decompress raw bytes

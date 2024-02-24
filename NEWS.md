@@ -1,5 +1,13 @@
 
 
+# zstdlite 0.2.4.9002 2024-02-24
+
+* `ZSTD_dctx` can be created separatedly and passed as compression argument
+    * Enables re-use of same context.
+    * `init_zstd_dctx()`
+* Framework in place to support dictionaries for compression/decompression.
+    * Seems to use dictionary and not crash
+    * Results don't seem correct though
 
 # zstdlite 0.2.4.9001 2024-02-23
 

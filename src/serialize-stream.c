@@ -93,7 +93,7 @@ void write_bytes_to_stream(R_outpstream_t stream, void *src, int length) {
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_serialize_stream_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_, SEXP cctx_) {
+SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create the buffer for the serialized representation
@@ -107,9 +107,9 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP compressionLevel_, SEXP num_threads_
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) {
-    buf.cctx = init_cctx(asInteger(compressionLevel_), asInteger(num_threads_));
+    buf.cctx = init_cctx(asInteger(level_), asInteger(num_threads_));
   } else {
-    buf.cctx = external_ptr_to_zstd_context(cctx_);
+    buf.cctx = external_ptr_to_zstd_cctx(cctx_);
     ZSTD_CCtx_reset(buf.cctx, ZSTD_reset_session_only);
   }
   

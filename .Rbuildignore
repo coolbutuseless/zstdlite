@@ -5,3 +5,4 @@
 ^\.github$
 ^working$
 ^.devcontainer$
+^data-raw$

@@ -7,7 +7,7 @@
 \usage{
 zstd_serialize(robj, level = 3L, num_threads = 1L, cctx = NULL)
 
-zstd_unserialize(raw_vec)
+zstd_unserialize(raw_vec, dctx = NULL)
 }
 \arguments{
 \item{robj}{Any R object understood by \code{base::serialize()}}
@@ -16,11 +16,14 @@ zstd_unserialize(raw_vec)
 
 \item{num_threads}{number of threads to use for compression}
 
-\item{cctx}{ZSTD C Context created by \code{init_zstd_cctx()} or NULL.
+\item{cctx}{ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.
 Default: NULL will create a context on the fly}
 
 \item{raw_vec}{Raw vector containing a compressed serialized representation of
 an R object}
+
+\item{dctx}{ZSTD Decompression Context created by \code{init_zstd_dctx()} or NULL.
+Default: NULL will decompression without any context using default seetings.}
 }
 \value{
 serialized representation compressed into a raw byte vector
