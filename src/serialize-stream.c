@@ -37,7 +37,7 @@ typedef struct {
 void write_byte_to_stream(R_outpstream_t stream, int c) {
   stream_buffer_t *buf = (stream_buffer_t *)stream->data;
   if (buf->pos == INSIZE) {
-    error("write_byte_to_stream(): Buffer exceeded\n");
+    error("write_byte_to_stream(): Buffer exceeded");
   }
   buf->data[buf->pos++] = (unsigned char)c;
 }
@@ -116,7 +116,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
   
   int res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, num_serialized_bytes);
   if (ZSTD_isError(res)) {
-    error("Error on pledge size\n");
+    error("zstd_serialize_stream(): Error on pledge size\n");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -178,8 +178,8 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Watch for compression errors
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (num_compressed_bytes <= 0) {
-    error("zstd_compress(): Compression error. Status: %i", num_compressed_bytes);
+  if (ZSTD_isError(num_compressed_bytes)) {
+    error("zstd_compress(): Compression error. Status: %i", ZSTD_getErrorName(num_compressed_bytes));
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

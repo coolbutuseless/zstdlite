@@ -78,8 +78,8 @@ SEXP zstd_serialize_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Watch for compression errors
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (num_compressed_bytes <= 0) {
-    error("zstd_compress(): Compression error. Status: %i", num_compressed_bytes);
+  if (ZSTD_isError(num_compressed_bytes)) {
+    error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +110,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
   // Sanity check
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (TYPEOF(src_) != RAWSXP) {
-    error("unpack(): Only raw vectors can be unserialized");
+    error("zstd_unserialize_(): Only raw vectors can be unserialized");
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -150,15 +150,14 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
   // Watch for decompression errors
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (ZSTD_isError(status)) {
-    error("zstd_unserialize(): De-compression error. Status: %i = %s", status, 
-          ZSTD_getErrorName(status));
+    error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }
 
 
   // Create a buffer object which points to the raw data
   static_buffer_t *buf = malloc(sizeof(static_buffer_t));
   if (buf == NULL) {
-    error("'buf' malloc failed!");
+    error("zstd_unserialize_(): 'buf' malloc failed!");
   }
   buf->length = dstCapacity;
   buf->pos    = 0;

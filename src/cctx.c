@@ -134,7 +134,7 @@ SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP dict_) {
       error("init_cctx(): 'dict' must be a raw vector or a filename");
     }
     if (ZSTD_isError(status)) {
-      error("init_cctx(): Error initialising dict");
+      error("init_cctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
     }
   }
   

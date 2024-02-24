@@ -97,7 +97,7 @@ SEXP init_dctx_(SEXP dict_) {
       error("init_dctx(): 'dict' must be a raw vector or a filename");
     }
     if (ZSTD_isError(status)) {
-      error("init_dctx(): Error initialising dict");
+      error("init_dctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
     }
   }
   

@@ -58,8 +58,8 @@ SEXP zstd_compress_(SEXP vec_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Watch for compression errors
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (num_compressed_bytes <= 0) {
-    error("zstd_compress(): Compression error. Status: %i", num_compressed_bytes);
+  if (ZSTD_isError(num_compressed_bytes)) {
+    error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -90,7 +90,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
   // Sanity check
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (TYPEOF(src_) != RAWSXP) {
-    error("unpack(): Only raw vectors can be unserialized");
+    error("zstd_decompress(): Only raw vectors can be unserialized");
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -128,7 +128,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
   // Watch for decompression errors
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (ZSTD_isError(status)) {
-    error("zstd_unserialize(): De-compression error. Status: %i", status);
+    error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
