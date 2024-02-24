@@ -179,7 +179,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
   // Watch for compression errors
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (ZSTD_isError(num_compressed_bytes)) {
-    error("zstd_compress(): Compression error. Status: %i", ZSTD_getErrorName(num_compressed_bytes));
+    error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
