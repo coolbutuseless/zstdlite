@@ -83,8 +83,12 @@ SEXP init_dctx_(SEXP dict_) {
       
       unsigned char *dict = malloc(fsize);
       if (dict == NULL) error("Couldn't allocate for reading dict from file");
-      fread(dict, fsize, 1, fp);
+      unsigned long n = fread(dict, fsize, 1, fp);
       fclose(fp);
+      
+      if (n != fsize) {
+        error("init_cctx(): fread() could not read entire dict from file");
+      }
       
       status = ZSTD_DCtx_loadDictionary(dctx, dict, fsize);
       
