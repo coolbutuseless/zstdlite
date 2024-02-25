@@ -46,7 +46,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
     // ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
   }
 
-  int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, src, src_size);
+  size_t num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, src, src_size);
   
   if (isNull(cctx_)) {
     ZSTD_freeCCtx(cctx);
