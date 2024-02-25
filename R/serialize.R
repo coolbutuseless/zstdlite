@@ -18,7 +18,7 @@
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_serialize <- function(robj, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call('zstd_serialize_', robj, level, num_threads, cctx)
+  .Call(zstd_serialize_, robj, level, num_threads, cctx)
 }
 
 
@@ -28,7 +28,7 @@ zstd_serialize <- function(robj, level = 3L, num_threads = 1L, cctx = NULL) {
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_unserialize <- function(raw_vec, dctx = NULL) {
-  .Call('zstd_unserialize_', raw_vec, dctx)
+  .Call(zstd_unserialize_, raw_vec, dctx)
 }
 
 
@@ -45,7 +45,7 @@ zstd_unserialize <- function(raw_vec, dctx = NULL) {
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_compress <- function(raw_vec, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call('zstd_compress_', raw_vec, level, num_threads, cctx)
+  .Call(zstd_compress_, raw_vec, level, num_threads, cctx)
 }
 
 
@@ -59,6 +59,6 @@ zstd_compress <- function(raw_vec, level = 3L, num_threads = 1L, cctx = NULL) {
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_decompress <- function(raw_vec, dctx = NULL) {
-  .Call('zstd_decompress_', raw_vec, dctx)
+  .Call(zstd_decompress_, raw_vec, dctx)
 }
 

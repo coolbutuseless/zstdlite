@@ -19,14 +19,15 @@
 // Needs total length and pos to keep track of how much data it currently contains
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define INSIZE 131702  // Calculated via ZSTD_CStream_InSize()
+#define INSIZE  131702  // Calculated via ZSTD_CStream_InSize()
+#define OUTSIZE 131591  
 
 typedef struct {
   ZSTD_CCtx *cctx;
   R_xlen_t pos;
   unsigned char data[INSIZE]; 
-  ZSTD_outBuffer zstd_buffer;
-} serialize_stream_buffer_t;
+  FILE **fp;
+} stream_file_buffer_t;
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,8 +35,8 @@ typedef struct {
 // The actual buffer is encapsulated as part of the stream structure, so you
 // have to extract it first
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-void write_byte_to_stream(R_outpstream_t stream, int c) {
-  serialize_stream_buffer_t *buf = (serialize_stream_buffer_t *)stream->data;
+void write_byte_to_stream_file(R_outpstream_t stream, int c) {
+  stream_file_buffer_t *buf = (stream_file_buffer_t *)stream->data;
   if (buf->pos == INSIZE) {
     error("write_byte_to_stream(): Buffer exceeded");
   }
@@ -49,8 +50,11 @@ void write_byte_to_stream(R_outpstream_t stream, int c) {
 // The actual buffer is encapsulated as part of the stream structure, so you
 // have to extract it first
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-void write_bytes_to_stream(R_outpstream_t stream, void *src, int length) {
-  serialize_stream_buffer_t *buf = (serialize_stream_buffer_t *)stream->data;
+void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
+  stream_file_buffer_t *buf = (stream_file_buffer_t *)stream->data;
+  
+  static unsigned char zstd_raw[OUTSIZE];
+  FILE *fp = *(buf->fp);
   
   if (buf->pos + length >= INSIZE) {
     
@@ -58,10 +62,12 @@ void write_bytes_to_stream(R_outpstream_t stream, void *src, int length) {
     ZSTD_inBuffer input = {buf->data, buf->pos, 0};
     
     do {
-      size_t rem = ZSTD_compressStream2(buf->cctx, &(buf->zstd_buffer), &input, ZSTD_e_continue);
+      ZSTD_outBuffer output = { zstd_raw, OUTSIZE, 0 };
+      size_t rem = ZSTD_compressStream2(buf->cctx, &output, &input, ZSTD_e_continue);
       if (ZSTD_isError(rem)) {
         Rprintf("write_bytes_to_stream() [A]: error %s\n", ZSTD_getErrorName(rem));
       }
+      fwrite(output.dst, 1, output.pos, fp);
     } while (input.pos != input.size);
     
     // Reset the serialization buffer
@@ -73,10 +79,12 @@ void write_bytes_to_stream(R_outpstream_t stream, void *src, int length) {
       ZSTD_inBuffer input = {src, length, 0};
       
       do {
-        size_t rem = ZSTD_compressStream2(buf->cctx, &(buf->zstd_buffer), &input, ZSTD_e_continue);
+        ZSTD_outBuffer output = { zstd_raw, OUTSIZE, 0 };
+        size_t rem = ZSTD_compressStream2(buf->cctx, &output, &input, ZSTD_e_continue);
         if (ZSTD_isError(rem)) {
           Rprintf("write_bytes_to_stream() [A]: error %s\n", ZSTD_getErrorName(rem));
         }
+        fwrite(output.dst, 1, output.pos, fp);
       } while (input.pos != input.size);
       
       return;
@@ -93,14 +101,25 @@ void write_bytes_to_stream(R_outpstream_t stream, void *src, int length) {
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
+SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
+  
+  static unsigned char zstd_raw[OUTSIZE];
+  
+  const char *filename = CHAR(STRING_ELT(file_, 0));
+  
+  
+  FILE *fp = fopen(filename, "wb");
+  if (fp == NULL) {
+    error("zstd_serialize_stream_file_(): Couldn't open output file '%s'", filename);
+  }
+  
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create the buffer for the serialized representation
   // Calculate the exact size of the serialized object in bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   int num_serialized_bytes = calc_size_robust(robj);
-  serialize_stream_buffer_t buf = {.pos = 0};
+  stream_file_buffer_t buf = {.pos = 0, .fp = &fp};
   
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,27 +135,9 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
   
   int res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, num_serialized_bytes);
   if (ZSTD_isError(res)) {
-    error("zstd_serialize_stream(): Error on pledge size\n");
+    error("zstd_serialize_stream_file(): Error on pledge size\n");
   }
   
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // calculate maximum possible size of compressed buffer in the worst case
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int max_compressed_bytes  = ZSTD_compressBound(num_serialized_bytes);
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Allocate a raw R vector to hold anything up to this size
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP rdst = PROTECT(allocVector(RAWSXP, max_compressed_bytes));
-  char *dst = (char *)RAW(rdst);
-
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Setup destination for zstd compressed data
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  buf.zstd_buffer.dst  = dst;
-  buf.zstd_buffer.size = max_compressed_bytes;
-  buf.zstd_buffer.pos  = 0;
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create the output stream structure for R serialization
@@ -144,14 +145,14 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
   struct R_outpstream_st output_stream;
 
   R_InitOutPStream(
-    &output_stream,          // The stream object which wraps everything
-    (R_pstream_data_t) &buf, // The actual serialized data. R_pstream_data_t = void *
-    R_pstream_binary_format, // Store as binary
-    3,                       // Version = 3 for R >3.5.0 See `?base::serialize`
-    write_byte_to_stream,    // Function to write single byte to buffer
-    write_bytes_to_stream,   // Function for writing multiple bytes to buffer
-    NULL,                    // Func for special handling of reference data.
-    R_NilValue               // Data related to reference data handling
+    &output_stream,             // The stream object which wraps everything
+    (R_pstream_data_t) &buf,    // The actual serialized data. R_pstream_data_t = void *
+    R_pstream_binary_format,    // Store as binary
+    3,                          // Version = 3 for R >3.5.0 See `?base::serialize`
+    write_byte_to_stream_file,  // Function to write single byte to buffer
+    write_bytes_to_stream_file, // Function for writing multiple bytes to buffer
+    NULL,                       // Func for special handling of reference data.
+    R_NilValue                  // Data related to reference data handling
   );
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,83 +164,23 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
   // Compress the remaining serialized data
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_inBuffer input = { buf.data, buf.pos, 0 };
-  
+
   size_t remaining_bytes;
   do {
-    remaining_bytes = ZSTD_compressStream2(buf.cctx, &(buf.zstd_buffer), &input, ZSTD_e_end);
+    ZSTD_outBuffer output = { zstd_raw, OUTSIZE, 0 };
+    remaining_bytes = ZSTD_compressStream2(buf.cctx, &output, &input, ZSTD_e_end);
+    fwrite(output.dst, 1, output.pos, fp);
   } while (remaining_bytes > 0);
-  
+
   if (isNull(cctx_)) {
     ZSTD_freeCCtx(buf.cctx);
   }
 
-  int num_compressed_bytes = buf.zstd_buffer.pos;
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Watch for compression errors
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (ZSTD_isError(num_compressed_bytes)) {
-    error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
-  }
 
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Truncate the user-viewable size of the RAW vector
-  // Requires: R_VERSION >= R_Version(3, 4, 0)
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (num_compressed_bytes < max_compressed_bytes) {
-    SETLENGTH(rdst, num_compressed_bytes);
-    SET_TRUELENGTH(rdst, max_compressed_bytes);
-    SET_GROWABLE_BIT(rdst);
-  }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  UNPROTECT(1);
-  return rdst;
+  fclose(fp);
+  return R_NilValue;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

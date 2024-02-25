@@ -15,6 +15,7 @@
 #include "calc-size-robust.h"
 #include "cctx.h"
 #include "dctx.h"
+#include "utils.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a buffer of fixed size and then compress
@@ -109,20 +110,23 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Sanity check
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (TYPEOF(src_) != RAWSXP) {
-    error("zstd_unserialize_(): Only raw vectors can be unserialized");
+  unsigned char *src;
+  size_t src_size;
+  
+  if (TYPEOF(src_) == RAWSXP) {
+    src = (unsigned char *)RAW(src_);
+    src_size = (size_t)length(src_);
+  } else if (TYPEOF(src_) == STRSXP) {
+    src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
+  } else {
+    error("zstd_unserialize_(): source must be a raw vector of filename");
   }
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // A C pointer into the raw data
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  unsigned char *src = (unsigned char *)RAW(src_);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Find the number of bytes of compressed data in the frame
   // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int compressedSize = ZSTD_findFrameCompressedSize(src, length(src_));
+  int compressedSize = ZSTD_findFrameCompressedSize(src, src_size);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Determine the final decompressed size in number of bytes
@@ -179,6 +183,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
   // Unserialize the input_stream into an R object
   SEXP res_  = PROTECT(R_Unserialize(&input_stream));
 
+  if (TYPEOF(src_) == STRSXP) free(src); 
   free(buf);
   UNPROTECT(1);
   return res_;

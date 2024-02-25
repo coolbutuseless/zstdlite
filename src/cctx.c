@@ -120,7 +120,7 @@ SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP dict_) {
       
       unsigned char *dict = malloc(fsize);
       if (dict == NULL) error("Couldn't allocate for reading dict from file");
-      unsigned long n = fread(dict, fsize, 1, fp);
+      unsigned long n = fread(dict, 1, fsize, fp);
       fclose(fp);
       
       if (n != fsize) {

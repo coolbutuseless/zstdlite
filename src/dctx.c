@@ -55,16 +55,22 @@ static void zstd_dctx_finalizer(SEXP dctx_) {
 }
 
 
+ZSTD_DCtx *init_dctx(void) {
+  ZSTD_DCtx *dctx = ZSTD_createDCtx();
+  if (dctx == NULL) {
+    error("init_dctx(): Couldn't initialse memory for 'dctx'");
+  }
+  
+  return dctx;
+}
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialize a ZSTD_Cctx pointer from R
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP init_dctx_(SEXP dict_) {
 
-  ZSTD_DCtx *dctx = ZSTD_createDCtx();
-  if (dctx == NULL) {
-    error("init_dctx(): Couldn't initialse memory for 'dctx'");
-  }
+  ZSTD_DCtx *dctx = init_dctx();
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Handle dict
@@ -83,7 +89,7 @@ SEXP init_dctx_(SEXP dict_) {
       
       unsigned char *dict = malloc(fsize);
       if (dict == NULL) error("Couldn't allocate for reading dict from file");
-      unsigned long n = fread(dict, fsize, 1, fp);
+      unsigned long n = fread(dict, 1, fsize, fp);
       fclose(fp);
       
       if (n != fsize) {

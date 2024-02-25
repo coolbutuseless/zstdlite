@@ -9,8 +9,49 @@
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_serialize_stream <- function(robj, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call('zstd_serialize_stream_', robj, level, num_threads, cctx)
+  .Call(zstd_serialize_stream_, robj, level, num_threads, cctx)
 }
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Unserialize stream
+#' 
+#' @param src raw vector 
+#' @param dctx context
+#'
+#' @export
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zstd_unserialize_stream <- function(src, dctx = NULL) {
+  .Call(zstd_unserialize_stream_, src, dctx)
+}
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Serialize arbitrary objects to a compressed stream of bytes using Zstandard
+#'
+#' @inheritParams zstd_serialize_stream
+#' @param file filename
+#'
+#' @return serialized representation compressed into a raw byte vector
+#'
+#' @export
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zstd_serialize_stream_file <- function(robj, file, level = 3L, num_threads = 1L, cctx = NULL) {
+  .Call(zstd_serialize_stream_file_, robj, file, level, num_threads, cctx)
+}
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Unserialize stream from file
+#' 
+#' @param src raw vector 
+#' @param dctx context
+#'
+#' @export
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zstd_unserialize_stream_file <- function(src, dctx = NULL) {
+  .Call(zstd_unserialize_stream_file_, src, dctx)
+}
+
 
 
 
