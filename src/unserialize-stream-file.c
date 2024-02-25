@@ -98,7 +98,12 @@ void read_bytes_from_stream_file(R_inpstream_t stream, void *dst, int length) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
   
-  ZSTD_DCtx *dctx = init_dctx();
+  ZSTD_DCtx *dctx;
+  if (!isNull(dctx_)) {
+    dctx = external_ptr_to_zstd_dctx(dctx_);
+  } else {
+    dctx = init_dctx();
+  }
   
   const char *filename = CHAR(STRING_ELT(src_, 0));
   FILE *fp = fopen(filename, "rb");
@@ -133,7 +138,7 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
   SEXP res_  = PROTECT(R_Unserialize(&input_stream));
   
   fclose(fp);
-  ZSTD_freeDCtx(dctx);
+  if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
   UNPROTECT(1);
   return res_;
 }

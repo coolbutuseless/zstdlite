@@ -110,7 +110,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
     buf.cctx = init_cctx(asInteger(level_), asInteger(num_threads_));
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
-    ZSTD_CCtx_reset(buf.cctx, ZSTD_reset_session_only);
+    // ZSTD_CCtx_reset(buf.cctx, ZSTD_reset_session_only);
   }
   
   

@@ -67,7 +67,7 @@ SEXP zstd_serialize_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
     cctx = init_cctx(asInteger(level_), asInteger(num_threads_));
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
-    ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
+    // ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
   }
   
   int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, buf->data, srcSize);
