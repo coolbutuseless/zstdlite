@@ -14,6 +14,17 @@ knitr::opts_chunk$set(
 
 library(dplyr)
 library(zstdlite)
+
+
+if (FALSE) {
+  covr::report(covr::package_coverage(
+    line_exclusions = list('src/zstd.c', 'src/zstd.h')
+  ))
+}
+
+if (FALSE) {
+  pkgdown::build_site(override = list(destination = "../coolbutuseless.github.io/package/yyjsonr"))
+}
 ```
 
 # zstdlite
@@ -33,7 +44,8 @@ R objects.
 
 # ToDo before release
 
-* More checks that decompression buffer is valid zstd object
+* zstd_compress/zstd_decompess() to file should use a streaming interface
+* Debug/test compression/decompression with dictionaries
 
 
 ## What's in the box
@@ -50,11 +62,10 @@ You can install from [GitHub](https://github.com/coolbutuseless/zstdlite) with:
 remotes::install_github('coolbutuseless/zstdlite')
 ```
 
-## Basic usage of zstdlite
+## Basic Usage
 
 ```{r}
 lobstr::obj_size(mtcars)
-
 
 buf <- zstd_serialize(mtcars)
 length(buf) # Number of compressed bytes
@@ -62,118 +73,45 @@ length(buf) # Number of compressed bytes
 # compression ratio
 length(buf)/as.numeric(lobstr::obj_size(mtcars))
 
-zstd_unserialize(buf)
+zstd_unserialize(buf) |> head()
 ```
 
 
-```{r echo=FALSE, eval=FALSE}
-library(qs)
+## Simple Benchmark
 
-dat <- iris[sample(nrow(iris), 10000, TRUE),]
+```{r}
+dat <- iris[sample(nrow(iris), 100000, TRUE),]
 lobstr::obj_size(dat)
 
-length(qserialize(dat))
-length(zstd_serialize(dat))
-
+file <- tempfile()
 res <- bench::mark(
-  qserialize(dat),
-  zstd_serialize(dat),
-  check = FALSE
+  zstd_serialize(dat, file = file),
+  zstd_serialize(dat, file = file, level = -5, num_threads = 3),
+  saveRDS(dat, file = file)
 )
 
+res[,1:5]
+```
+
+```{r echo=FALSE}
+library(ggplot2)
+library(dplyr)
+plot_df <- res %>%
+  mutate(run = as.character(expression)) %>%
+  mutate(speedup = `itr/sec` / min(`itr/sec`))
+
+ggplot(plot_df) +
+  geom_col(aes(run, speedup)) + 
+  theme_bw() + 
+  labs(
+    title = "Saving `zstd` compressed R objects",
+    subtitle = "Bigger is better",
+    x = NULL,
+    y = "Factor speed increase over saveRDS()"
+  )
 ```
 
 
-
-
-
-## Compressing 1 million Integers
-
-
-```{r}
-library(zstdlite)
-# library(lz4lite)
-set.seed(1)
-
-N                 <- 1e6
-input_ints        <- sample(1:5, N, prob = (1:5)^4, replace = TRUE)
-uncompressed      <- serialize(input_ints, NULL, xdr = FALSE)
-compressed_lo     <- zstd_serialize(input_ints, level = -5)
-compressed_mid    <- zstd_serialize(input_ints, level =  3)
-compressed_mid2   <- zstd_serialize(input_ints, level = 10)
-compressed_hi     <- zstd_serialize(input_ints, level = 22)
-compressed_base   <- memCompress(serialize(input_ints, NULL, xdr = FALSE))
-```
-
-
-```{r echo = FALSE}
-lens <- c(
-  length(serialize(input_ints, NULL, xdr = FALSE)),
-  length(memCompress(serialize(input_ints, NULL, xdr = FALSE))),
-  length(zstd_serialize(input_ints, level = -5)),
-  length(zstd_serialize(input_ints, level =  3)),
-  length(zstd_serialize(input_ints, level = 10)),
-  length(zstd_serialize(input_ints, level = 22))
-)
-```
-
-
-
-<details>
-<summary> Click here to show/hide benchmark code </summary>
-
-```{r}
-library(zstdlite)
-
-res <- bench::mark(
-  serialize(input_ints, NULL, xdr = FALSE),
-  memCompress(serialize(input_ints, NULL, xdr = FALSE)),
-  zstd_serialize(input_ints, level =  -5),
-  zstd_serialize(input_ints, level =   3),
-  zstd_serialize(input_ints, level =  10),
-  zstd_serialize(input_ints, level =  22),
-  check = FALSE
-)
-```
-</details>
-
-
-```{r echo = FALSE}
-res %>% 
-  mutate(`MB/s` = round(N*4/1024^2 / as.numeric(median), 1)) %>%
-  mutate(`itr/sec` = round(`itr/sec`)) %>%
-  mutate(compression_ratio = round(lens/(N*4), 3)) %>%
-  select(expression, median, `itr/sec`, `MB/s`, compression_ratio) %>%
-  knitr::kable()
-```
-
-
-### Decompressing 1 million integers
-
-
-<details>
-<summary> Click here to show/hide benchmark code </summary>
-
-```{r}
-res <- bench::mark(
-  unserialize(uncompressed),
-  zstd_unserialize(compressed_lo),
-  zstd_unserialize(compressed_mid2),
-  zstd_unserialize(compressed_hi),
-  unserialize(memDecompress(compressed_base, type = 'gzip')),
-  check = TRUE
-)
-```
-
-</details>
-
-```{r echo = FALSE}
-res %>% 
-  mutate(`MB/s` = round(N*4/1024^2 / as.numeric(median), 1)) %>%
-  mutate(`itr/sec` = round(`itr/sec`)) %>%
-  select(expression, median, `itr/sec`, `MB/s`)  %>%
-  knitr::kable()
-```
 
 
 

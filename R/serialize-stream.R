@@ -6,7 +6,7 @@
 #'
 #' @return serialized representation compressed into a raw byte vector
 #'
-#' @export
+#' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_serialize_stream <- function(robj, level = 3L, num_threads = 1L, cctx = NULL) {
   .Call(zstd_serialize_stream_, robj, level, num_threads, cctx)
@@ -19,7 +19,7 @@ zstd_serialize_stream <- function(robj, level = 3L, num_threads = 1L, cctx = NUL
 #' @param src raw vector 
 #' @param dctx context
 #'
-#' @export
+#' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_unserialize_stream <- function(src, dctx = NULL) {
   .Call(zstd_unserialize_stream_, src, dctx)
@@ -34,7 +34,7 @@ zstd_unserialize_stream <- function(src, dctx = NULL) {
 #'
 #' @return serialized representation compressed into a raw byte vector
 #'
-#' @export
+#' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_serialize_stream_file <- function(robj, file, level = 3L, num_threads = 1L, cctx = NULL) {
   .Call(zstd_serialize_stream_file_, robj, file, level, num_threads, cctx)
@@ -46,7 +46,7 @@ zstd_serialize_stream_file <- function(robj, file, level = 3L, num_threads = 1L,
 #' @param src raw vector 
 #' @param dctx context
 #'
-#' @export
+#' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_unserialize_stream_file <- function(src, dctx = NULL) {
   .Call(zstd_unserialize_stream_file_, src, dctx)

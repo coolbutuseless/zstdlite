@@ -31,13 +31,12 @@ typedef struct {
 } unserialize_stream_buffer_t;
 
 
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Write a byte into the buffer at the current location.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int read_byte_from_stream(R_inpstream_t stream) {
   error("read_byte_from_stream(): Reading single byte is unsupported\n");
-  // unserialize_stream_buffer_t *buf = (unserialize_stream_buffer_t *)stream->data;
-  // return buf->uncompressed_data[buf->uncompressed_pos++];
 }
 
 
@@ -51,8 +50,16 @@ void read_bytes_from_stream(R_inpstream_t stream, void *dst, int length) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack bytes into the 'dst' buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ZSTD_inBuffer input   = { buf->compressed_data, buf->compressed_size, 0 };
-  ZSTD_outBuffer output = { dst                 , length              , 0 };
+  ZSTD_inBuffer input   = { 
+    .src  = buf->compressed_data, 
+    .size = buf->compressed_size, 
+    .pos  = 0 
+  };
+  ZSTD_outBuffer output = {
+    .dst  = dst, 
+    .size = length, 
+    .pos  = 0 
+  };
   
   
   while (output.pos < length) {
@@ -67,22 +74,34 @@ void read_bytes_from_stream(R_inpstream_t stream, void *dst, int length) {
 }
 
 
-// bb <- readBin("working/out.rds.zst", raw(), n = file.size("working/out.rds.zst"))
-// zstd_unserialize_stream(bb)
-// bench::mark(zstd_unserialize_stream(bb))
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_) {
   
-  ZSTD_DCtx *dctx = init_dctx();
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup Decompression Context
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ZSTD_DCtx *dctx;
+  if (isNull(dctx_)) {
+    dctx = init_dctx();
+  } else {
+    dctx = external_ptr_to_zstd_dctx(dctx_);
+  }
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup user data for serialization
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   unserialize_stream_buffer_t user_data = {
     .dctx             = dctx,
     .compressed_pos   = 0
   };
 
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // This vanilla version of streaming unserialization only handles 
+  // the src being a raw vector
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (TYPEOF(src_) == RAWSXP) {
     user_data.compressed_data = (unsigned char *)RAW(src_);
     user_data.compressed_size = (size_t)length(src_);
@@ -90,10 +109,10 @@ SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_) {
     error("zstd_unserialize_stream_(): source must be a raw vector");
   }
 
-  
-  // Treat the data buffer as an input stream
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup the R serialization struct
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   struct R_inpstream_st input_stream;
-  
   R_InitInPStream(
     &input_stream,           // Stream object wrapping data buffer
     (R_pstream_data_t) &user_data,  // Actual data buffer
@@ -104,9 +123,15 @@ SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_) {
     NULL                     // Data related to reference data handling
   );
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unserialize the input_stream into an R object
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP res_  = PROTECT(R_Unserialize(&input_stream));
   
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Tidy and return
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_freeDCtx(dctx);
   UNPROTECT(1);
   return res_;

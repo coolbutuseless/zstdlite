@@ -13,19 +13,23 @@
 #include "zstd.h"
 #include "calc-size-robust.h"
 #include "dctx.h"
+#include "serialize-file.h"
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// A data buffer of constant size
-// Needs total length and pos to keep track of how much data it currently contains
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define INSIZE 131702  // Calculated via ZSTD_CStream_InSize()
-#define STARTSIZE 131702
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// A magic size calculated via ZSTD_CStream_InSize()
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#define INSIZE 131702  
 
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// User Struct for Serialization
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 typedef struct {
   ZSTD_DCtx *dctx;
   
   FILE **fp;
+  
   unsigned char compressed_data[INSIZE];
   size_t compressed_size;
   size_t compressed_pos;
@@ -44,37 +48,56 @@ int read_byte_from_stream_file(R_inpstream_t stream) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Write multiple bytes into the buffer at the current location.
+// Read multiple bytes from compressed file
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void read_bytes_from_stream_file(R_inpstream_t stream, void *dst, int length) {
   unserialize_stream_file_buffer_t *buf = (unserialize_stream_file_buffer_t *)stream->data;
   
-  
-  // Fill the buffer
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // If file read buffer  is empty, then fill it
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (buf->compressed_len == 0) {
     buf->compressed_len = fread(buf->compressed_data, 1, buf->compressed_size, *(buf->fp));
     buf->compressed_pos = 0;
   }
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // ZSTD input struct.
+  // Note: There may be multiple calls to 'read_bytes_from_stream_file()'
+  //       which are all consuming data from the same buffered read from file
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_inBuffer input   = { 
     .src  = buf->compressed_data + buf->compressed_pos, 
     .size = buf->compressed_len  - buf->compressed_pos, 
     .pos  = 0
   };
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // ZSTD output struct
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_outBuffer output = {
     .dst  = dst, 
     .size = length, 
     .pos  = 0 
   };
   
-  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Decompress bytes in the 'compressed_data' buffer until we have the 
+  // number of bytes requested (i.e. 'length')
+  // If the 'compressed_data' buffer runs out of data, read in some more!
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   while (output.pos < length) {
-    size_t const ret = ZSTD_decompressStream(buf->dctx, &output , &input);
-    if (ZSTD_isError(ret)) {
-      error("read_bytes_from_stream_file() error: %s", ZSTD_getErrorName(ret));
+    size_t const status = ZSTD_decompressStream(buf->dctx, &output , &input);
+    if (ZSTD_isError(status)) {
+      error("read_bytes_from_stream_file() error: %s", ZSTD_getErrorName(status));
     }
+    
+    // Update the compressed data pointer to where we have decompressed up to
     buf->compressed_pos += input.pos;
+    
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // If the read file buffer (of compressed data) is exhausted: read more!
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if (buf->compressed_pos == buf->compressed_len) {
       // file read buffer is exhausted. read more bytes
       buf->compressed_len = fread(buf->compressed_data, 1, buf->compressed_size, *(buf->fp));
@@ -89,15 +112,15 @@ void read_bytes_from_stream_file(R_inpstream_t stream, void *dst, int length) {
 }
 
 
-// bb <- readBin("working/out.rds.zst", raw(), n = file.size("working/out.rds.zst"))
-// zstd_unserialize_stream_file("working/out.rds.zst")
-// bench::mark(zstd_unserialize_stream(bb))
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Unpack a raw vector to an R object
+// Unserialize an object by streaming compressed data from a file
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup the Decompression Context
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
   if (!isNull(dctx_)) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
@@ -105,13 +128,18 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
     dctx = init_dctx();
   }
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup file pointer
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   const char *filename = CHAR(STRING_ELT(src_, 0));
   FILE *fp = fopen(filename, "rb");
   if (fp == NULL) {
     error("zstd_unserialize_stream_file(): Couldn't open input file '%s'", filename);
   }
   
-  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup the user data structure to keep track of decompression
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   unserialize_stream_file_buffer_t user_data = {
     .fp               = &fp,
     .dctx             = dctx,
@@ -120,10 +148,10 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
     .compressed_size  = INSIZE
   };
 
-  
-  // Treat the data buffer as an input stream
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup the R serialization struct
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   struct R_inpstream_st input_stream;
-  
   R_InitInPStream(
     &input_stream,                  // Stream object wrapping data buffer
     (R_pstream_data_t) &user_data,  // Actual data buffer
@@ -134,9 +162,15 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
     NULL                            // Data related to reference data handling
   );
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unserialize the input_stream into an R object
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP res_  = PROTECT(R_Unserialize(&input_stream));
   
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Tidy and return
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   fclose(fp);
   if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
   UNPROTECT(1);

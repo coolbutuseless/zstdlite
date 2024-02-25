@@ -4,10 +4,13 @@
 \alias{zstd_compress}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_compress(raw_vec, level = 3L, num_threads = 1L, cctx = NULL)
+zstd_compress(raw_vec, file = NULL, level = 3L, num_threads = 1L, cctx = NULL)
 }
 \arguments{
 \item{raw_vec}{raw vector}
+
+\item{file}{filename in which to serialize data. If NULL (the default), then 
+serialize the results to a raw vector}
 
 \item{level}{compression level -5 to 22. Default: 3}
 

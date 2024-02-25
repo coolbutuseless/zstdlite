@@ -12,7 +12,7 @@
 
 #include "zstd.h"
 #include "dctx.h"
-
+#include "utils.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack an R external pointer to a C pointer 'ZSTD_DCtx *'
@@ -28,6 +28,7 @@ ZSTD_DCtx * external_ptr_to_zstd_dctx(SEXP dctx_) {
   error("ZSTD_DCtx pointer is invalid/NULL.");
   return NULL;
 }
+
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -55,6 +56,10 @@ static void zstd_dctx_finalizer(SEXP dctx_) {
 }
 
 
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Initialize a ZSTD_DCtx from C
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ZSTD_DCtx *init_dctx(void) {
   ZSTD_DCtx *dctx = ZSTD_createDCtx();
   if (dctx == NULL) {
@@ -65,15 +70,17 @@ ZSTD_DCtx *init_dctx(void) {
 }
 
 
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Initialize a ZSTD_Cctx pointer from R
+// Initialize a ZSTD_DCtx pointer from R
+// @param dict could be a raw vector holding a dictionary or a filename
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP init_dctx_(SEXP dict_) {
 
   ZSTD_DCtx *dctx = init_dctx();
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Handle dict
+  // Handle dictionary
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!isNull(dict_)) {
     size_t status;
@@ -81,23 +88,9 @@ SEXP init_dctx_(SEXP dict_) {
       status = ZSTD_DCtx_loadDictionary(dctx, RAW(dict_), length(dict_));
     } else if (TYPEOF(dict_) == STRSXP) {
       const char *filename = CHAR(STRING_ELT(dict_, 0));
-      FILE *fp = fopen(filename, "rb");
-      if (fp == NULL) error("Couldn't open file '%s'", filename);
-      fseek(fp, 0, SEEK_END);
-      long fsize = ftell(fp);
-      fseek(fp, 0, SEEK_SET);  /* same as rewind(f); */
-      
-      unsigned char *dict = malloc(fsize);
-      if (dict == NULL) error("Couldn't allocate for reading dict from file");
-      unsigned long n = fread(dict, 1, fsize, fp);
-      fclose(fp);
-      
-      if (n != fsize) {
-        error("init_cctx(): fread() could not read entire dict from file");
-      }
-      
+      size_t fsize;
+      unsigned char *dict = read_file(filename, &fsize);
       status = ZSTD_DCtx_loadDictionary(dctx, dict, fsize);
-      
       free(dict);
     } else {
       error("init_dctx(): 'dict' must be a raw vector or a filename");
@@ -107,12 +100,15 @@ SEXP init_dctx_(SEXP dict_) {
     }
   }
   
-
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Wrap 'dctx' into an R external pointer
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP dctx_ = PROTECT(R_MakeExternalPtr(dctx, R_NilValue, R_NilValue));
   R_RegisterCFinalizer(dctx_, zstd_dctx_finalizer);
   Rf_setAttrib(dctx_, R_ClassSymbol, Rf_mkString("ZSTD_DCtx"));
-  UNPROTECT(1);
   
+  
+  UNPROTECT(1);
   return dctx_;
 }
 

@@ -15,30 +15,28 @@
 #include "calc-size-robust.h"
 #include "cctx.h"
 #include "dctx.h"
+#include "utils.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_compress_(SEXP vec_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
+SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
 
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Sanity check
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (TYPEOF(vec_) != RAWSXP) {
-    error("zstd_compress_() only accepts raw vectors");
-  }
+  unsigned char *src = RAW(vec_);
+  size_t src_size = length(vec_);
+  
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // calculate maximum possible size of compressed buffer in the worst case
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int dstCapacity  = ZSTD_compressBound(length(vec_));
+  int dstCapacity  = ZSTD_compressBound(src_size);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Allocate a raw R vector to hold anything up to this size
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP rdst = PROTECT(allocVector(RAWSXP, dstCapacity));
-  char *dst = (char *)RAW(rdst);
+  SEXP dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
+  char *dst = (char *)RAW(dst_);
   
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
@@ -48,7 +46,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
     // ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
   }
 
-  int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, RAW(vec_), length(vec_));
+  int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, src, src_size);
   
   if (isNull(cctx_)) {
     ZSTD_freeCCtx(cctx);
@@ -62,21 +60,42 @@ SEXP zstd_compress_(SEXP vec_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
     error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Dump to file
+  // TODO: this could be a streaming write and avoid raw buffer allocation
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (!isNull(file_)) {
+    const char *filename = CHAR(STRING_ELT(file_, 0));
+    FILE *fp = fopen(filename, "wb");
+    if (fp == NULL) {
+      error("zstd_compress(): Couldn't open file for output '%s'", filename);
+    }
+    size_t num_written = fwrite(dst, 1, num_compressed_bytes, fp);
+    fclose(fp);
+    if (num_written != num_compressed_bytes) {
+      error("zstd_compress(): File '%s' only wrote %zu/%zu bytes", filename, num_written, num_compressed_bytes);
+    }
+    UNPROTECT(1);
+    return R_NilValue;
+  }
+  
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Truncate the user-viewable size of the RAW vector
   // Requires: R_VERSION >= R_Version(3, 4, 0)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (num_compressed_bytes < dstCapacity) {
-    SETLENGTH(rdst, num_compressed_bytes);
-    SET_TRUELENGTH(rdst, dstCapacity);
-    SET_GROWABLE_BIT(rdst);
+    SETLENGTH(dst_, num_compressed_bytes);
+    SET_TRUELENGTH(dst_, dstCapacity);
+    SET_GROWABLE_BIT(dst_);
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   UNPROTECT(1);
-  return rdst;
+  return dst_;
 }
 
 
@@ -87,22 +106,26 @@ SEXP zstd_compress_(SEXP vec_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
 SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Sanity check
+  // Unpack data
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (TYPEOF(src_) != RAWSXP) {
-    error("zstd_decompress(): Only raw vectors can be unserialized");
+  unsigned char *src;
+  size_t src_size;
+  
+  if (TYPEOF(src_) == STRSXP) {
+    src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
+    // Rprintf("decompressing from file %zu\n", src_size);
+  } else if (TYPEOF(src_) == RAWSXP) {
+    src = RAW(src_);
+    src_size = length(src_);
+  } else {
+    error("zstd_compress_() only accepts raw vectors or filenames");
   }
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // A C pointer into the raw data
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  unsigned char *src = (unsigned char *)RAW(src_);
-
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Find the number of bytes of compressed data in the frame
   // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int compressedSize = ZSTD_findFrameCompressedSize(src, length(src_));
+  int compressedSize = ZSTD_findFrameCompressedSize(src, src_size);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Determine the final decompressed size in number of bytes
@@ -115,18 +138,15 @@ SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
   SEXP dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
   void *dst = (void *)RAW(dst_);
 
-  size_t status;
+  ZSTD_DCtx * dctx;
   
   if (isNull(dctx_)) {
-    status = ZSTD_decompress(dst, dstCapacity, src, compressedSize);
+    dctx = init_dctx();
   } else {
-    ZSTD_DCtx * dctx = external_ptr_to_zstd_dctx(dctx_);
-    status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
+    dctx = external_ptr_to_zstd_dctx(dctx_);
   }
   
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Watch for decompression errors
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  size_t status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
   if (ZSTD_isError(status)) {
     error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }

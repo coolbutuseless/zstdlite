@@ -50,8 +50,9 @@ static_buffer_t *init_buffer(int nbytes) {
 // have to extract it first
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void write_byte(R_outpstream_t stream, int c) {
-  static_buffer_t *buf = (static_buffer_t *)stream->data;
-  buf->data[buf->pos++] = (unsigned char)c;
+  error("write_byte(): This function unused in binary serialization.  Panic at the disco!");
+  // static_buffer_t *buf = (static_buffer_t *)stream->data;
+  // buf->data[buf->pos++] = (unsigned char)c;
 }
 
 

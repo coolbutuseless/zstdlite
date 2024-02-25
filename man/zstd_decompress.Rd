@@ -4,10 +4,11 @@
 \alias{zstd_decompress}
 \title{Decompress raw bytes}
 \usage{
-zstd_decompress(raw_vec, dctx = NULL)
+zstd_decompress(src, dctx = NULL)
 }
 \arguments{
-\item{raw_vec}{raw vector}
+\item{src}{Raw vector or filename containing a ZSTD compressed serialized representation of
+an R object}
 
 \item{dctx}{ZSTD Decompression Context}
 }

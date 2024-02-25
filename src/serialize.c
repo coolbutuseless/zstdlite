@@ -16,25 +16,30 @@
 #include "cctx.h"
 #include "dctx.h"
 #include "utils.h"
+#include "serialize-file.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Serialize an R object to a buffer of fixed size and then compress
-// the buffer using zstd
+// Serialize an R object to a compressed raw vector
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_serialize_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
+SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
 
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // If 'file_' is set, then use streaming interface
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (!isNull(file_)) {
+    return zstd_serialize_stream_file_(robj_, file_, level_, num_threads_, cctx_);
+  }
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create the buffer for the serialized representation
-  // See also: `expand_buffer()` which re-allocates the memory buffer if
-  // it runs out of space
-  int start_size = calc_size_robust(robj);
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  size_t src_size = calc_serialized_size(robj_);
+  static_buffer_t *buf = init_buffer(src_size);
 
-  static_buffer_t *buf = init_buffer(start_size);
-
-
-  // Create the output stream structure
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Create the R serialization structure
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   struct R_outpstream_st output_stream;
-
-  // Initialise the output stream structure
   R_InitOutPStream(
     &output_stream,          // The stream object which wraps everything
     (R_pstream_data_t) buf,  // The actual data
@@ -45,40 +50,35 @@ SEXP zstd_serialize_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
     NULL,                    // Func for special handling of reference data.
     R_NilValue               // Data related to reference data handling
   );
-
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Serialize the object into the output_stream
-  R_Serialize(robj, &output_stream);
-
-  int srcSize = buf->pos;
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  R_Serialize(robj_, &output_stream);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // calculate maximum possible size of compressed buffer in the worst case
+  // And allocate the buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int dstCapacity  = ZSTD_compressBound(srcSize);
+  int dstCapacity  = ZSTD_compressBound(src_size);
+  SEXP dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
+  char *dst = (char *)RAW(dst_);
 
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Allocate a raw R vector to hold anything up to this size
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP rdst = PROTECT(allocVector(RAWSXP, dstCapacity));
-  char *dst = (char *)RAW(rdst);
-
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Compression Context
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
     cctx = init_cctx(asInteger(level_), asInteger(num_threads_));
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
-    // ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
-  }
-  
-  int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, buf->data, srcSize);
-  
-  if (isNull(cctx_)) {
-    ZSTD_freeCCtx(cctx);
   }
 
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Watch for compression errors
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Compress
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+  int num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, buf->data, src_size);
+  if (isNull(cctx_))  ZSTD_freeCCtx(cctx);
   if (ZSTD_isError(num_compressed_bytes)) {
     error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
@@ -88,16 +88,19 @@ SEXP zstd_serialize_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
   // Requires: R_VERSION >= R_Version(3, 4, 0)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (num_compressed_bytes < dstCapacity) {
-    SETLENGTH(rdst, num_compressed_bytes);
-    SET_TRUELENGTH(rdst, dstCapacity);
-    SET_GROWABLE_BIT(rdst);
+    SETLENGTH(dst_, num_compressed_bytes);
+    SET_TRUELENGTH(dst_, dstCapacity);
+    SET_GROWABLE_BIT(dst_);
   }
 
-  // Free all the memory
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Tidy and return
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   free(buf->data);
   free(buf);
   UNPROTECT(1);
-  return rdst;
+  return dst_;
 }
 
 
@@ -107,21 +110,19 @@ SEXP zstd_serialize_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
 
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Sanity check
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  unsigned char *src;
-  size_t src_size;
-  
-  if (TYPEOF(src_) == RAWSXP) {
-    src = (unsigned char *)RAW(src_);
-    src_size = (size_t)length(src_);
-  } else if (TYPEOF(src_) == STRSXP) {
-    src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
-  } else {
-    error("zstd_unserialize_(): source must be a raw vector of filename");
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // if 'src_' is a filename, then handle it with the streaming interface
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (TYPEOF(src_) == STRSXP) {
+    return zstd_unserialize_stream_file_(src_, dctx_);
   }
-
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Determine pointer to raw buffer
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  unsigned char *src = (unsigned char *)RAW(src_);
+  size_t src_size = (size_t)length(src_);
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Find the number of bytes of compressed data in the frame
   // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
@@ -130,61 +131,64 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Determine the final decompressed size in number of bytes
+  // and allocate a decompression buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   int dstCapacity = (int)ZSTD_getFrameContentSize(src, compressedSize);
- 
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Create a decompression buffer of the exact required size
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   void *dst = malloc(dstCapacity);
+  if (dst == NULL) {
+    error("zstd_unserialize(): Could not allocation decompression buffer\n");
+  }
 
-  size_t status;
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Decompression context
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ZSTD_DCtx *dctx;
   if (isNull(dctx_)) {
-    status = ZSTD_decompress(dst, dstCapacity, src, compressedSize);
+    dctx = init_dctx();
   } else {
-    ZSTD_DCtx * dctx = external_ptr_to_zstd_dctx(dctx_);
-    status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
+    dctx = external_ptr_to_zstd_dctx(dctx_);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Decompress
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Watch for decompression errors
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  size_t status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
   if (ZSTD_isError(status)) {
     error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }
 
-
-  // Create a buffer object which points to the raw data
-  static_buffer_t *buf = malloc(sizeof(static_buffer_t));
-  if (buf == NULL) {
-    error("zstd_unserialize_(): 'buf' malloc failed!");
-  }
-  buf->length = dstCapacity;
-  buf->pos    = 0;
-  buf->data   = dst;
-
-  // Treat the data buffer as an input stream
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Create a buffer structure to coordinate the input data
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  static_buffer_t buf = {
+    .data   = dst,
+    .length = dstCapacity,
+    .pos    = 0
+  };
+    
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Create and Initialize the R Input Struct
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   struct R_inpstream_st input_stream;
-
   R_InitInPStream(
     &input_stream,           // Stream object wrapping data buffer
-    (R_pstream_data_t) buf,  // Actual data buffer
+    (R_pstream_data_t) &buf,// User data = input buffer
     R_pstream_any_format,    // Unpack all serialized types
     read_byte,               // Function to read single byte from buffer
     read_bytes,              // Function for reading multiple bytes from buffer
     NULL,                    // Func for special handling of reference data.
     NULL                     // Data related to reference data handling
   );
-
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unserialize the input_stream into an R object
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP res_  = PROTECT(R_Unserialize(&input_stream));
 
-  if (TYPEOF(src_) == STRSXP) free(src); 
-  free(buf);
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Tidy and return
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   UNPROTECT(1);
   return res_;
 }

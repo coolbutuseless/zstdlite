@@ -20,25 +20,6 @@ test_that("cctx with zstd_serialize works", {
 
 
 
-
-
-test_that("cctx with zstd_serialize_stream works", {
-  
-  cctx <- init_zstd_cctx()
-  expect_identical(
-    zstd_serialize_stream(mtcars),
-    zstd_serialize_stream(mtcars, cctx = cctx)
-  )
-  
-  # Re-using a cctx
-  expect_identical(
-    zstd_serialize_stream(mtcars),
-    zstd_serialize_stream(mtcars, cctx = cctx)
-  )
-  
-})
-
-
 test_that("cctx with zstd_compress works", {
   
   cctx <- init_zstd_cctx()

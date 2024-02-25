@@ -13,20 +13,27 @@
 #include "zstd.h"
 #include "calc-size-robust.h"
 #include "cctx.h"
+#include "serialize-file.h"
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// A data buffer of constant size
-// Needs total length and pos to keep track of how much data it currently contains
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define INSIZE  131702  // Calculated via ZSTD_CStream_InSize()
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Magic values calculated with: 
+// Calculated via ZSTD_CStream_InSize()
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#define INSIZE  131702  
 #define OUTSIZE 131591  
 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// User Struct for Compression
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 typedef struct {
   ZSTD_CCtx *cctx;
-  R_xlen_t pos;
-  unsigned char data[INSIZE]; 
   FILE **fp;
+  
+  unsigned char uncompressed_data[INSIZE]; 
+  size_t uncompressed_pos;
+  size_t uncompressed_size;
+  
 } stream_file_buffer_t;
 
 
@@ -36,19 +43,18 @@ typedef struct {
 // have to extract it first
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void write_byte_to_stream_file(R_outpstream_t stream, int c) {
-  stream_file_buffer_t *buf = (stream_file_buffer_t *)stream->data;
-  if (buf->pos == INSIZE) {
-    error("write_byte_to_stream(): Buffer exceeded");
-  }
-  buf->data[buf->pos++] = (unsigned char)c;
+  error("write_byte_to_stream_file(): Writing single byte is unsupported\n");
+  // stream_file_buffer_t *buf = (stream_file_buffer_t *)stream->data;
+  // if (buf->uncompressed_pos == INSIZE) {
+  //   error("write_byte_to_stream(): Buffer exceeded");
+  // }
+  // buf->uncompressed_data[buf->uncompressed_pos++] = (unsigned char)c;
 }
 
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Write multiple bytes into the buffer at the current location.
-// The actual buffer is encapsulated as part of the stream structure, so you
-// have to extract it first
+// Write multiple serialized bytes to file
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
   stream_file_buffer_t *buf = (stream_file_buffer_t *)stream->data;
@@ -56,34 +62,62 @@ void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
   static unsigned char zstd_raw[OUTSIZE];
   FILE *fp = *(buf->fp);
   
-  if (buf->pos + length >= INSIZE) {
+  if (buf->uncompressed_pos + length >= buf->uncompressed_size) {
     
     // Compress current serialize buffer 
-    ZSTD_inBuffer input = {buf->data, buf->pos, 0};
+    ZSTD_inBuffer input = {
+      .src  = buf->uncompressed_data, 
+      .size = buf->uncompressed_pos, 
+      .pos  = 0
+    };
     
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Compress the input data
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     do {
-      ZSTD_outBuffer output = { zstd_raw, OUTSIZE, 0 };
+      ZSTD_outBuffer output = { 
+        .dst  = zstd_raw, 
+        .size = OUTSIZE, 
+        .pos  = 0 
+      };
+      
       size_t rem = ZSTD_compressStream2(buf->cctx, &output, &input, ZSTD_e_continue);
       if (ZSTD_isError(rem)) {
-        Rprintf("write_bytes_to_stream() [A]: error %s\n", ZSTD_getErrorName(rem));
+        Rprintf("write_bytes_to_stream_file(): error %s\n", ZSTD_getErrorName(rem));
       }
+      
       fwrite(output.dst, 1, output.pos, fp);
     } while (input.pos != input.size);
     
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Reset the serialization buffer
-    buf->pos = 0;
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    buf->uncompressed_pos = 0;
     
-    // Check length of new seriazlization data. If larger than INSIZE, 
+    
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Check length of new seriazlization data. If larger than buf->uncompssed_size, 
     // then compress directly and return
-    if (length >= INSIZE) {
-      ZSTD_inBuffer input = {src, length, 0};
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (length >= buf->uncompressed_size) {
+      ZSTD_inBuffer input = {
+        .src  = src, 
+        .size = length, 
+        .pos  = 0
+      };
       
       do {
-        ZSTD_outBuffer output = { zstd_raw, OUTSIZE, 0 };
+        ZSTD_outBuffer output = { 
+          .dst  = zstd_raw, 
+          .size = OUTSIZE, 
+          .pos  = 0 
+        };
+        
         size_t rem = ZSTD_compressStream2(buf->cctx, &output, &input, ZSTD_e_continue);
         if (ZSTD_isError(rem)) {
-          Rprintf("write_bytes_to_stream() [A]: error %s\n", ZSTD_getErrorName(rem));
+          Rprintf("write_bytes_to_stream_file(): error %s\n", ZSTD_getErrorName(rem));
         }
+        
         fwrite(output.dst, 1, output.pos, fp);
       } while (input.pos != input.size);
       
@@ -91,8 +125,8 @@ void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
     }
   }
   
-  memcpy(buf->data + buf->pos, src, length);
-  buf->pos += length;
+  memcpy(buf->uncompressed_data + buf->uncompressed_pos, src, length);
+  buf->uncompressed_pos += length;
 }
 
 
@@ -105,9 +139,10 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP level_, SEXP num_th
   
   static unsigned char zstd_raw[OUTSIZE];
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Open file for output
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   const char *filename = CHAR(STRING_ELT(file_, 0));
-  
-  
   FILE *fp = fopen(filename, "wb");
   if (fp == NULL) {
     error("zstd_serialize_stream_file_(): Couldn't open output file '%s'", filename);
@@ -118,8 +153,12 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP level_, SEXP num_th
   // Create the buffer for the serialized representation
   // Calculate the exact size of the serialized object in bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int num_serialized_bytes = calc_size_robust(robj);
-  stream_file_buffer_t buf = {.pos = 0, .fp = &fp};
+  int num_serialized_bytes = calc_serialized_size(robj);
+  stream_file_buffer_t buf = {
+    .uncompressed_pos = 0, 
+    .uncompressed_size = INSIZE,
+    .fp = &fp
+  };
   
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -132,12 +171,14 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP level_, SEXP num_th
     // ZSTD_CCtx_reset(buf.cctx, ZSTD_reset_session_only);
   }
   
-  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // For streaming compression, need to manually set the 
+  // number of uncompressed bytes
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   int res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, num_serialized_bytes);
   if (ZSTD_isError(res)) {
     error("zstd_serialize_stream_file(): Error on pledge size\n");
   }
-  
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create the output stream structure for R serialization
@@ -161,26 +202,33 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP level_, SEXP num_th
   R_Serialize(robj, &output_stream);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Compress the remaining serialized data
+  // Need to flush out and compress any remaining bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ZSTD_inBuffer input = { buf.data, buf.pos, 0 };
+  ZSTD_inBuffer input = { 
+    .src  = buf.uncompressed_data, 
+    .size = buf.uncompressed_pos, 
+    .pos  = 0 
+  };
 
   size_t remaining_bytes;
   do {
-    ZSTD_outBuffer output = { zstd_raw, OUTSIZE, 0 };
+    ZSTD_outBuffer output = { 
+      .dst  = zstd_raw, 
+      .size = OUTSIZE, 
+      .pos  = 0 
+    };
     remaining_bytes = ZSTD_compressStream2(buf.cctx, &output, &input, ZSTD_e_end);
+    if (ZSTD_isError(remaining_bytes)) {
+      Rprintf("write_bytes_to_stream_file() [end]: error %s\n", ZSTD_getErrorName(remaining_bytes));
+    }
     fwrite(output.dst, 1, output.pos, fp);
   } while (remaining_bytes > 0);
-
-  if (isNull(cctx_)) {
-    ZSTD_freeCCtx(buf.cctx);
-  }
-
 
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (isNull(cctx_)) ZSTD_freeCCtx(buf.cctx);
   fclose(fp);
   return R_NilValue;
 }

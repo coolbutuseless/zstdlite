@@ -1,7 +1,7 @@
 
 
 tmp <- tempfile()
-zstd_serialize_stream_file(mtcars, file = tmp)
+zstd_serialize(mtcars, file = tmp)
 
 test_that("stream to/from file works", {
   

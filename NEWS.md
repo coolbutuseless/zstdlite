@@ -1,5 +1,14 @@
 
 
+# zstdlite 0.2.4.9004 2024-02-25
+
+* Refactor R interface to just:
+    * `init_zstd_cctx()`, `init_zstd_dctx()`
+    * `zstd_compress()`, `zstd_decompress()`
+    * `zstd_serialize()`, `zstd_unserialize()`
+        * Will use streaming if working from files
+
+
 # zstdlite 0.2.4.9003 2024-02-25
 
 * Streaming serialization/unserialisation with compressed files:

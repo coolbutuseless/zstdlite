@@ -1,2 +1,2 @@
 
-int calc_size_robust(SEXP robj);
+int calc_serialized_size(SEXP robj);

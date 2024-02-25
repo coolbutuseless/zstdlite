@@ -5,12 +5,15 @@
 \alias{zstd_unserialize}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_serialize(robj, level = 3L, num_threads = 1L, cctx = NULL)
+zstd_serialize(robj, file = NULL, level = 3L, num_threads = 1L, cctx = NULL)
 
-zstd_unserialize(raw_vec, dctx = NULL)
+zstd_unserialize(src, dctx = NULL)
 }
 \arguments{
 \item{robj}{Any R object understood by \code{base::serialize()}}
+
+\item{file}{filename in which to serialize data. If NULL (the default), then 
+serialize the results to a raw vector}
 
 \item{level}{compression level -5 to 22. Default: 3}
 
@@ -19,7 +22,7 @@ zstd_unserialize(raw_vec, dctx = NULL)
 \item{cctx}{ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.
 Default: NULL will create a context on the fly}
 
-\item{raw_vec}{Raw vector containing a compressed serialized representation of
+\item{src}{Raw vector or filename containing a ZSTD compressed serialized representation of
 an R object}
 
 \item{dctx}{ZSTD Decompression Context created by \code{init_zstd_dctx()} or NULL.

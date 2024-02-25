@@ -14,12 +14,14 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 [zstd](https://github.com/facebook/zstd) library for performing
 in-memory compression of R objects.
 
-For rock solid general solutions to fast serialization of R objects, see
-the [fst](https://github.com/fstpackage/fst) or
-[qs](https://cran.r-project.org/package=qs) packages.
-
 [zstd](https://github.com/facebook/zstd) code provided with this package
-is v1.5.0.
+is v1.5.5.
+
+# ToDo before release
+
+- zstd_compress/zstd_decompess() to file should use a streaming
+  interface
+- Debug/test compression/decompression with dictionaries
 
 ## What’s in the box
 
@@ -36,128 +38,68 @@ You can install from
 remotes::install_github('coolbutuseless/zstdlite')
 ```
 
-## Basic usage of zstdlite
+## Basic Usage
 
 ``` r
-arr <- array(1:27, c(3, 3, 3))
-lobstr::obj_size(arr)
+lobstr::obj_size(mtcars)
 ```
 
-    #> 352 B
+    #> 7.21 kB
 
 ``` r
-buf <- zstd_serialize(arr)
-length(buf) # Number of bytes
+buf <- zstd_serialize(mtcars)
+length(buf) # Number of compressed bytes
 ```
 
-    #> [1] 116
+    #> [1] 1307
 
 ``` r
 # compression ratio
-length(buf)/as.numeric(lobstr::obj_size(arr))
+length(buf)/as.numeric(lobstr::obj_size(mtcars))
 ```
 
-    #> [1] 0.3295455
+    #> [1] 0.1813263
 
 ``` r
-zstd_unserialize(buf)
+zstd_unserialize(buf) |> head()
 ```
 
-    #> , , 1
-    #> 
-    #>      [,1] [,2] [,3]
-    #> [1,]    1    4    7
-    #> [2,]    2    5    8
-    #> [3,]    3    6    9
-    #> 
-    #> , , 2
-    #> 
-    #>      [,1] [,2] [,3]
-    #> [1,]   10   13   16
-    #> [2,]   11   14   17
-    #> [3,]   12   15   18
-    #> 
-    #> , , 3
-    #> 
-    #>      [,1] [,2] [,3]
-    #> [1,]   19   22   25
-    #> [2,]   20   23   26
-    #> [3,]   21   24   27
+    #>                    mpg cyl disp  hp drat    wt  qsec vs am gear carb
+    #> Mazda RX4         21.0   6  160 110 3.90 2.620 16.46  0  1    4    4
+    #> Mazda RX4 Wag     21.0   6  160 110 3.90 2.875 17.02  0  1    4    4
+    #> Datsun 710        22.8   4  108  93 3.85 2.320 18.61  1  1    4    1
+    #> Hornet 4 Drive    21.4   6  258 110 3.08 3.215 19.44  1  0    3    1
+    #> Hornet Sportabout 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2
+    #> Valiant           18.1   6  225 105 2.76 3.460 20.22  1  0    3    1
 
-## Compressing 1 million Integers
+## Simple Benchmark
 
 ``` r
-library(zstdlite)
-# library(lz4lite)
-set.seed(1)
-
-N                 <- 1e6
-input_ints        <- sample(1:5, N, prob = (1:5)^4, replace = TRUE)
-uncompressed      <- serialize(input_ints, NULL, xdr = FALSE)
-compressed_lo     <- zstd_serialize(input_ints, level = -5)
-compressed_mid    <- zstd_serialize(input_ints, level =  3)
-compressed_mid2   <- zstd_serialize(input_ints, level = 10)
-compressed_hi     <- zstd_serialize(input_ints, level = 22)
-compressed_base   <- memCompress(serialize(input_ints, NULL, xdr = FALSE))
+dat <- iris[sample(nrow(iris), 100000, TRUE),]
+lobstr::obj_size(dat)
 ```
 
-<details>
-<summary>
-Click here to show/hide benchmark code
-</summary>
+    #> 10.00 MB
 
 ``` r
-library(zstdlite)
-
+file <- tempfile()
 res <- bench::mark(
-  serialize(input_ints, NULL, xdr = FALSE),
-  memCompress(serialize(input_ints, NULL, xdr = FALSE)),
-  zstd_serialize(input_ints, level =  -5),
-  zstd_serialize(input_ints, level =   3),
-  zstd_serialize(input_ints, level =  10),
-  zstd_serialize(input_ints, level =  22),
-  check = FALSE
+  zstd_serialize(dat, file = file),
+  zstd_serialize(dat, file = file, level = -5, num_threads = 3),
+  saveRDS(dat, file = file)
 )
+
+res[,1:5]
 ```
 
-</details>
+    #> # A tibble: 3 × 5
+    #>   expression                                    min   median `itr/sec` mem_alloc
+    #>   <bch:expr>                               <bch:tm> <bch:tm>     <dbl> <bch:byt>
+    #> 1 zstd_serialize(dat, file = file)          15.16ms   15.3ms     65.0    17.27KB
+    #> 2 zstd_serialize(dat, file = file, level …   7.09ms   7.32ms    137.     17.27KB
+    #> 3 saveRDS(dat, file = file)                 163.7ms 164.16ms      6.09    8.63KB
 
-| expression                                            |   median | itr/sec |   MB/s | compression_ratio |
-|:------------------------------------------------------|---------:|--------:|-------:|------------------:|
-| serialize(input_ints, NULL, xdr = FALSE)              | 415.78µs |    2343 | 9174.8 |             1.000 |
-| memCompress(serialize(input_ints, NULL, xdr = FALSE)) | 116.08ms |       9 |   32.9 |             0.079 |
-| zstd_serialize(input_ints, level = -5)                |   6.39ms |     156 |  596.9 |             0.229 |
-| zstd_serialize(input_ints, level = 3)                 |   6.73ms |     148 |  566.6 |             0.101 |
-| zstd_serialize(input_ints, level = 10)                |  71.77ms |      14 |   53.2 |             0.081 |
-| zstd_serialize(input_ints, level = 22)                |    1.47s |       1 |    2.6 |             0.056 |
-
-### Decompressing 1 million integers
-
-<details>
-<summary>
-Click here to show/hide benchmark code
-</summary>
-
-``` r
-res <- bench::mark(
-  unserialize(uncompressed),
-  zstd_unserialize(compressed_lo),
-  zstd_unserialize(compressed_mid2),
-  zstd_unserialize(compressed_hi),
-  unserialize(memDecompress(compressed_base, type = 'gzip')),
-  check = TRUE
-)
-```
-
-</details>
-
-| expression                                                 |   median | itr/sec |    MB/s |
-|:-----------------------------------------------------------|---------:|--------:|--------:|
-| unserialize(uncompressed)                                  | 198.24µs |    4968 | 19243.3 |
-| zstd_unserialize(compressed_lo)                            |   3.98ms |     252 |   957.8 |
-| zstd_unserialize(compressed_mid2)                          |   2.75ms |     365 |  1387.0 |
-| zstd_unserialize(compressed_hi)                            |   1.42ms |     708 |  2690.1 |
-| unserialize(memDecompress(compressed_base, type = “gzip”)) |   3.21ms |     291 |  1190.4 |
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
 
 ### Zstd “Single File” Libary
 
