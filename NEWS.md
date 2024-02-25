@@ -1,5 +1,11 @@
 
 
+# zstdlite 0.2.4.9003 2024-02-25
+
+* Streaming serialization/unserialisation with compressed files:
+    * `zstd_serialize_stream_file()`
+    * `zstd_unserialize_stream_file()`
+
 # zstdlite 0.2.4.9002 2024-02-24
 
 * `ZSTD_dctx` can be created separatedly and passed as compression argument
