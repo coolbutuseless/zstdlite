@@ -103,7 +103,7 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
   const char *filename = CHAR(STRING_ELT(src_, 0));
   FILE *fp = fopen(filename, "rb");
   if (fp == NULL) {
-    error("zstd_unserialize_stream_file(): Couldn't open input file '%s%'", filename);
+    error("zstd_unserialize_stream_file(): Couldn't open input file '%s'", filename);
   }
   
   
