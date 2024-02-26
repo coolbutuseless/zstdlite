@@ -41,7 +41,7 @@ static const R_CallMethodDef CEntries[] = {
   {"zstd_unserialize_stream_"     , (DL_FUNC) &zstd_unserialize_stream_     , 2},
   
   {"zstd_train_dictionary_"       , (DL_FUNC) &zstd_train_dictionary_       , 4},
-  {"zstd_dict_id_"                , (DL_FUNC) &zstd_dict_id_                , 2},
+  {"zstd_dict_id_"                , (DL_FUNC) &zstd_dict_id_                , 1},
   
   {NULL, NULL, 0}
 };

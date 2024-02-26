@@ -15,7 +15,12 @@ zstd_train_dict_serialize(
 \item{samples}{list of example R objects to train a dictionary to be 
 used with \code{zstd_serialize}}
 
-\item{size}{size of dictionary in bytes. Recommend: 100,000}
+\item{size}{Maximum size of dictionary in bytes. Default: 112640 (110 kB) 
+matches the default size set by the command line version of \code{zstd}.
+Actual dictionary size may be smaller than this if (1) there was not
+enough training data to make use of this size (2) \code{optim_shrink_allow}
+was set and a smaller dictionary was found to be almost as 
+useful.}
 
 \item{optim}{optimize the dictionary. Default FALSE.  If TRUE, then ZSTD
 will spend time optimizing the dictionary.}
