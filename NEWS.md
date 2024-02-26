@@ -1,4 +1,10 @@
 
+# zstdlite 0.2.4.9005 2024-02-26
+
+* Add support for training dictionaries
+    * `zstd_train_dict_compress()` if training for `zstd_compress()`
+    * `zstd_train_dict_serialize()` if training for `zstd_serialize()`
+    * `zstd_dict_id()` to get the dict ID
 
 # zstdlite 0.2.4.9004 2024-02-25
 
