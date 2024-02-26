@@ -23,8 +23,21 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
 
-  unsigned char *src = RAW(vec_);
-  size_t src_size = length(vec_);
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Unpack 'raw' or 'string' arguments
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  unsigned char *src;
+  size_t src_size;
+  
+  if (TYPEOF(vec_) == RAWSXP) {
+    src = RAW(vec_);
+    src_size = (size_t)length(vec_);
+  } else if (TYPEOF(vec_) == STRSXP) {
+    src = (unsigned char *)CHAR(STRING_ELT(vec_, 0));
+    src_size = (size_t)strlen(CHAR(STRING_ELT(vec_, 0)));
+  } else {
+    error("zstd_compress() only accepts raw vectors or strings");
+  }
   
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,29 +51,27 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
   SEXP dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
   char *dst = (char *)RAW(dst_);
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Prepare compression context
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
     cctx = init_cctx(asInteger(level_), asInteger(num_threads_));
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
-    // ZSTD_CCtx_reset(cctx, ZSTD_reset_session_only);
   }
 
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Compress data
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, src, src_size);
-  
   if (isNull(cctx_)) {
     ZSTD_freeCCtx(cctx);
   }
-
-
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Watch for compression errors
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (ZSTD_isError(num_compressed_bytes)) {
     error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
-  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Dump to file
   // TODO: this could be a streaming write and avoid raw buffer allocation
@@ -79,7 +90,6 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
     UNPROTECT(1);
     return R_NilValue;
   }
-  
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Truncate the user-viewable size of the RAW vector
@@ -103,7 +113,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
+SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack data
@@ -113,7 +123,6 @@ SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
   
   if (TYPEOF(src_) == STRSXP) {
     src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
-    // Rprintf("decompressing from file %zu\n", src_size);
   } else if (TYPEOF(src_) == RAWSXP) {
     src = RAW(src_);
     src_size = length(src_);
@@ -135,9 +144,23 @@ SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create a decompression buffer of the exact required size
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
-  void *dst = (void *)RAW(dst_);
+  int return_raw = strcmp(CHAR(STRING_ELT(type_, 0)), "raw") == 0;
+  
+  SEXP dst_;
+  unsigned char *dst;
+  
+  if (return_raw) {
+    dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
+    dst = (void *)RAW(dst_);
+  } else {
+    dst_ = PROTECT(allocVector(STRSXP, 1));
+    dst = (unsigned char *)malloc(dstCapacity + 1);
+    dst[dstCapacity] = 0;
+  }  
 
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Initialise decompression context
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx * dctx;
   
   if (isNull(dctx_)) {
@@ -146,11 +169,21 @@ SEXP zstd_decompress_(SEXP src_, SEXP dctx_) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   }
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Decompress
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
   if (ZSTD_isError(status)) {
     error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }
-
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Creating string if this was requested
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (!return_raw) {
+    SET_STRING_ELT(dst_, 0, mkChar((char *)dst));
+  }
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

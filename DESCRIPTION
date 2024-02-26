@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
-Title: In-memory Compression with Zstandard
-Version: 0.2.4.9005
+Title: Compression and Object Serialization with Zstandard
+Version: 0.2.4.9006
 Authors@R: c(
     person(given = "mikefc",
            email = "mikefc@coolbutuseless.com", 
@@ -13,7 +13,9 @@ Authors@R: c(
     )
 Author: mikefc
 Maintainer: mikefc <mikefc@coolbutuseless.com>
-Description: In-memory compression of arbitrary R objects with Zstandard.
+Description: Compression of arbitrary R objects with Zstandard, and 
+    compression of raw bytes and string for compatibility with 
+    systems.
 URL: https://github.com/coolbutuseless/zstdlite
 BugReports: https://github.com/coolbutuseless/zstdlite/issues
 License: MIT + file LICENSE

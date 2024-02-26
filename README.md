@@ -117,26 +117,56 @@ res[,1:5]
 
     #> # A tibble: 3 × 5
     #>   expression                                    min   median `itr/sec` mem_alloc
-    #>   <bch:expr>                                <bch:t> <bch:tm>     <dbl> <bch:byt>
-    #> 1 zstd_serialize(dat, file = file)           14.8ms     15ms     66.5    17.27KB
-    #> 2 zstd_serialize(dat, file = file, level =…   7.1ms   7.24ms    138.     17.27KB
-    #> 3 saveRDS(dat, file = file)                 162.5ms 162.98ms      6.13    8.63KB
+    #>   <bch:expr>                               <bch:tm> <bch:tm>     <dbl> <bch:byt>
+    #> 1 zstd_serialize(dat, file = file)          14.69ms  14.89ms     66.9    17.27KB
+    #> 2 zstd_serialize(dat, file = file, level …   7.09ms   7.23ms    138.     17.27KB
+    #> 3 saveRDS(dat, file = file)                163.49ms 163.81ms      6.10    8.63KB
 
 <img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
 
 ## Basic example `zstd_decompress()`
 
-`zstd_compress()` and `zstd_decompress()` can be used when you have raw
-data compressed elsewhere, or want to make compressed data available to
-other systems in a cross-platform way.
+`zstd_serialize()`/`zstd_unserialize()` compress R objects that are
+really only useful when working in R, or sharing data with other R
+users.
+
+In contrast, `zstd_compress()`/`zstd_decompress()` operate only on raw
+vectors and strings, and are more suitable for handling compressed data
+which is compatible with other systems and languages
+
+Examples:
+
+- reading compressed JSON files
+- writing compressed data for storage in a database that will be
+  accessed by different computer languages and operating systems.
+
+#### Reading a compressed JSON file
+
+JSON files are often compressed. In this case, the `data.json` file was
+compressed using the `zstd` command-line tool, i.e.
+
+    zstd data.json -o data.json.zst
+
+This compressed file can be read directly into R as uncompressed bytes
+(in a raw vector), or as a string
 
 ``` r
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Read a ZSTD-compressed JSON file
+# Read a compressed JSON file as raw bytes or as a string
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_decompress("man/figures/data.json.zst") |>
-  rawToChar() |>
-  cat()
+zstd_decompress("man/figures/data.json.zst")
+```
+
+    #>   [1] 7b 0a 20 20 22 6d 70 67 22 3a 20 5b 32 31 5d 2c 0a 20 20 22 63 79 6c 22 3a
+    #>  [26] 20 5b 36 5d 2c 0a 20 20 22 64 69 73 70 22 3a 20 5b 31 36 30 5d 2c 0a 20 20
+    #>  [51] 22 68 70 22 3a 20 5b 31 31 30 5d 2c 0a 20 20 22 64 72 61 74 22 3a 20 5b 33
+    #>  [76] 2e 39 5d 2c 0a 20 20 22 77 74 22 3a 20 5b 32 2e 36 32 5d 2c 0a 20 20 22 71
+    #> [101] 73 65 63 22 3a 20 5b 31 36 2e 34 36 5d 2c 0a 20 20 22 76 73 22 3a 20 5b 30
+    #> [126] 5d 2c 0a 20 20 22 61 6d 22 3a 20 5b 31 5d 2c 0a 20 20 22 67 65 61 72 22 3a
+    #> [151] 20 5b 34 5d 2c 0a 20 20 22 63 61 72 62 22 3a 20 5b 34 5d 0a 7d 0a
+
+``` r
+zstd_decompress("man/figures/data.json.zst", type = 'string') |> cat()
 ```
 
     #> {
@@ -152,6 +182,41 @@ zstd_decompress("man/figures/data.json.zst") |>
     #>   "gear": [4],
     #>   "carb": [4]
     #> }
+
+#### Compressing a string
+
+When transmitting large amounts of text to another system, we may wish
+to first compress it.
+
+The following string (`manifesto`) is compressed by `zstd_compress()`
+and can be uncompressed by any system which supports the `zstd` library,
+or even just using the `zstd` command-line tool.
+
+``` r
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Compress a string directly 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
+lobstr::obj_size(manifesto)
+```
+
+    #> 32.15 kB
+
+``` r
+compressed <- zstd_compress(manifesto)
+lobstr::obj_size(compressed)
+```
+
+    #> 9.96 kB
+
+``` r
+identical(
+  zstd_decompress(compressed, type = 'string'),
+  manifesto
+)
+```
+
+    #> [1] TRUE
 
 ## Dictionary-based compression
 
@@ -277,8 +342,8 @@ bench::mark(
     #> # A tibble: 2 × 5
     #>   expression      min   median `itr/sec` mem_alloc
     #>   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>
-    #> 1 No Dict     11.14ms  11.47ms      86.5      18MB
-    #> 2 Dict         7.77ms   8.25ms     119.       18MB
+    #> 1 No Dict     10.87ms   11.4ms      87.4      18MB
+    #> 2 Dict         7.78ms   8.07ms     124.       18MB
 
 ### Zstd “Single File” Libary
 

@@ -135,9 +135,19 @@ ggplot(plot_df) +
 
 ## Basic example `zstd_decompress()` 
 
-`zstd_compress()` and `zstd_decompress()` can be used when you have raw data
-compressed elsewhere, or want to make compressed data available to other systems in a 
-cross-platform way.
+`zstd_serialize()`/`zstd_unserialize()` compress R objects that are really only 
+useful when working in R, or sharing data with other R users.
+
+In contrast, `zstd_compress()`/`zstd_decompress()` operate only on raw vectors
+and strings, and are more suitable 
+for handling compressed data which is compatible with other systems and languages
+
+Examples:
+
+* reading compressed JSON files
+* writing compressed data for storage in a database that will be accessed 
+  by different computer languages and operating systems.
+
 
 ```{r eval=FALSE, echo=FALSE}
 zz <- as.list(mtcars[1,]) |> jsonlite::toJSON(pretty = TRUE)
@@ -145,14 +155,48 @@ writeLines(zz, "man/figures/data.json")
 system("zstd man/figures/data.json")
 ```
 
+#### Reading a compressed JSON file
+
+JSON files are often compressed.  In this case, the `data.json` file was 
+compressed using the `zstd` command-line tool, i.e.
+
+    zstd data.json -o data.json.zst
+    
+This compressed file can be read directly into R as uncompressed bytes (in a 
+raw vector), or as a string
 
 ```{r}
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Read a ZSTD-compressed JSON file
+# Read a compressed JSON file as raw bytes or as a string
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_decompress("man/figures/data.json.zst") |>
-  rawToChar() |>
-  cat()
+zstd_decompress("man/figures/data.json.zst")
+zstd_decompress("man/figures/data.json.zst", type = 'string') |> cat()
+```
+
+#### Compressing a string
+
+When transmitting large amounts of text to another system, we may wish to 
+first compress it.
+
+The following string (`manifesto`) is compressed by `zstd_compress()` and
+can be uncompressed by any system which supports the `zstd` library, or
+even just using the `zstd` command-line tool.
+
+
+```{r}
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Compress a string directly 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
+lobstr::obj_size(manifesto)
+
+compressed <- zstd_compress(manifesto)
+lobstr::obj_size(compressed)
+
+identical(
+  zstd_decompress(compressed, type = 'string'),
+  manifesto
+)
 ```
 
 

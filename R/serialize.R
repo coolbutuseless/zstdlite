@@ -40,14 +40,15 @@ zstd_unserialize <- function(src, dctx = NULL) {
 #' Serialize arbitrary objects to a compressed stream of bytes using Zstandard
 #'
 #' @inheritParams zstd_serialize
-#' @param raw_vec raw vector
+#' @param src Source data to be compressed.  This may be a raw vector, or a
+#'        character string
 #'
-#' @return raw vector
+#' @return raw vector of compressed data
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_compress <- function(raw_vec, file = NULL, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call(zstd_compress_, raw_vec, file, level, num_threads, cctx)
+zstd_compress <- function(src, file = NULL, level = 3L, num_threads = 1L, cctx = NULL) {
+  .Call(zstd_compress_, src, file, level, num_threads, cctx)
 }
 
 
@@ -56,11 +57,13 @@ zstd_compress <- function(raw_vec, file = NULL, level = 3L, num_threads = 1L, cc
 #' Decompress raw bytes
 #' 
 #' @inheritParams zstd_serialize
+#' @param type should data be returned as a 'raw' vector? or as a 'string'? 
+#'        Default: 'raw'
 #' @param dctx ZSTD Decompression Context
 #' 
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_decompress <- function(src, dctx = NULL) {
-  .Call(zstd_decompress_, src, dctx)
+zstd_decompress <- function(src, type = 'raw', dctx = NULL) {
+  .Call(zstd_decompress_, src, type, dctx)
 } 
 

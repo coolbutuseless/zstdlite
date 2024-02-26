@@ -5,8 +5,8 @@
 extern SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP dict_);
 extern SEXP init_dctx_(SEXP dict_);
 
-extern SEXP zstd_compress_(SEXP raw_vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_);
-extern SEXP zstd_decompress_(SEXP raw_vec_, SEXP dctx_);
+extern SEXP zstd_compress_(SEXP src_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_);
+extern SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_);
 
 extern SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_);
 extern SEXP zstd_unserialize_(SEXP src_, SEXP dctx_);
@@ -32,7 +32,7 @@ static const R_CallMethodDef CEntries[] = {
   {"zstd_unserialize_"            , (DL_FUNC) &zstd_unserialize_            , 2},
   
   {"zstd_compress_"               , (DL_FUNC) &zstd_compress_               , 5},
-  {"zstd_decompress_"             , (DL_FUNC) &zstd_decompress_             , 2},
+  {"zstd_decompress_"             , (DL_FUNC) &zstd_decompress_             , 3},
   
   {"zstd_serialize_stream_file_"  , (DL_FUNC) &zstd_serialize_stream_file_  , 5},
   {"zstd_unserialize_stream_file_", (DL_FUNC) &zstd_unserialize_stream_file_, 2},

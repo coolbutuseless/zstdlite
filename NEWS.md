@@ -1,4 +1,10 @@
 
+
+# zstdlite 0.2.4.9006 2024-02-27
+
+* `zstd_decompress()` now optionally returns the decompressed buffer as a string
+* `zstd_compress()` will compress both raw vectors and strings
+
 # zstdlite 0.2.4.9005 2024-02-26
 
 * Add support for training dictionaries
