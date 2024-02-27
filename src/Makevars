@@ -1,0 +1,14 @@
+PKG_CPPFLAGS = -Izstd
+PKG_LIBS = ./libzstd.a
+
+LIBZSTD = zstd/zstd.o
+
+all: clean $(SHLIB)
+
+$(SHLIB): $(PKG_LIBS)
+	
+libzstd.a: $(LIBZSTD)
+	$(AR) rcs libzstd.a $(LIBZSTD)
+  
+clean:
+	rm -f  $(SHLIB) $(OBJECTS) $(LIBZSTD) ./libzstd.a
