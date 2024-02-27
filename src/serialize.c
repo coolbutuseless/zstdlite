@@ -132,7 +132,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
   // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   int compressedSize = ZSTD_findFrameCompressedSize(src, src_size);
-
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Determine the final decompressed size in number of bytes
   // and allocate a decompression buffer

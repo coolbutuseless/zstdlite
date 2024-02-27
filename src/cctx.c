@@ -103,7 +103,7 @@ ZSTD_CCtx *init_cctx(int level, int num_threads, int stable_buffers) {
   // 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (stable_buffers) {
-    int res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 1);
+    res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 1);
     if (ZSTD_isError(res)) {
       error("init_cctx() could not set 'ZSTD_c_stableInBuffer'");
     }
@@ -113,6 +113,70 @@ ZSTD_CCtx *init_cctx(int level, int num_threads, int stable_buffers) {
       error("init_cctx() could not set 'ZSTD_c_stableOutBuffer'");
     }
   }
+  
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Controls whether the new and experimental "dedicated dictionary search
+  // structure" can be used. This feature is still rough around the edges, be
+  // prepared for surprising behavior!
+  // 
+  // How to use it:
+  // 
+  // When using a CDict, whether to use this feature or not is controlled at
+  // CDict creation, and it must be set in a CCtxParams set passed into that
+  // construction (via ZSTD_createCDict_advanced2()). A compression will then
+  // use the feature or not based on how the CDict was constructed; the value of
+  // this param, set in the CCtx, will have no effect.
+  // 
+  // However, when a dictionary buffer is passed into a CCtx, such as via
+  // ZSTD_CCtx_loadDictionary(), this param can be set on the CCtx to control
+  // whether the CDict that is created internally can use the feature or not.
+  // 
+  // What it does:
+  // 
+  // Normally, the internal data structures of the CDict are analogous to what
+  // would be stored in a CCtx after compressing the contents of a dictionary.
+  // To an approximation, a compression using a dictionary can then use those
+  // data structures to simply continue what is effectively a streaming
+  // compression where the simulated compression of the dictionary left off.
+  // Which is to say, the search structures in the CDict are normally the same
+  // format as in the CCtx.
+  // 
+  // It is possible to do better, since the CDict is not like a CCtx: the search
+  // structures are written once during CDict creation, and then are only read
+  // after that, while the search structures in the CCtx are both read and
+  // written as the compression goes along. This means we can choose a search
+  // structure for the dictionary that is read-optimized.
+  // 
+  // This feature enables the use of that different structure.
+  // 
+  // Note that some of the members of the ZSTD_compressionParameters struct have
+  // different semantics and constraints in the dedicated search structure. It is
+  // highly recommended that you simply set a compression level in the CCtxParams
+  // you pass into the CDict creation call, and avoid messing with the cParams
+  // directly.
+  // 
+  // Effects:
+  // 
+  // This will only have any effect when the selected ZSTD_strategy
+  // implementation supports this feature. Currently, that's limited to
+  // ZSTD_greedy, ZSTD_lazy, and ZSTD_lazy2.
+  // 
+  // Note that this means that the CDict tables can no longer be copied into the
+  // CCtx, so the dict attachment mode ZSTD_dictForceCopy will no longer be
+  // usable. The dictionary can only be attached or reloaded.
+  // 
+  // In general, you should expect compression to be faster--sometimes very much
+  // so--and CDict creation to be slightly slower. Eventually, we will probably
+  // make this mode the default.
+  // 
+  //
+  // 2024-02-27 Didn't seem to have any effect for current zstdlite cases. 
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_enableDedicatedDictSearch, 1);
+  // if (ZSTD_isError(res)) {
+  //   error("init_cctx() could not set 'ZSTD_c_enableDedicatedDictSearch'");
+  // }
   
   
   return cctx;

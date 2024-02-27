@@ -296,8 +296,8 @@ dict <- zstd_train_dict_serialize(train_samples, size = 5000, optim = FALSE)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Setup Compression/Decompression contexts to use this dictionary
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cctx_nodict <- init_zstd_cctx()             # No dictionary. For comparison
-cctx_dict   <- init_zstd_cctx(dict = dict)
+cctx_nodict <- init_zstd_cctx(level = 3)             # No dictionary. For comparison
+cctx_dict   <- init_zstd_cctx(level = 3, dict = dict)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # When using the dictionary, what is the size of the compressed data compared
