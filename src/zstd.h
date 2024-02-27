@@ -69,6 +69,9 @@ extern "C" {
 #  endif
 #endif /* ZSTD_DISABLE_DEPRECATE_WARNINGS */
 
+#ifndef ZSTD_STATIC_LINKING_ONLY
+#  define ZSTD_STATIC_LINKING_ONLY
+#endif 
 
 /*******************************************************************************
   Introduction

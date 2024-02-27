@@ -1,9 +1,11 @@
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Get the ID of a dictionary 
+#' Get the Dictionary ID of a dictionary or compressed data
 #' 
-#' @param dict raw vector 
-#' @return dictionary id.  if data does not represent a dictionary, returns 0
+#' @param dict raw vector or filename
+#' @return Signed integer value representing the Dictionary ID. If data does not 
+#'         represent a dictionary, or data which was compressed with a dictionary,
+#'         then a value of 0 is returned.
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_dict_id <- function(dict) {

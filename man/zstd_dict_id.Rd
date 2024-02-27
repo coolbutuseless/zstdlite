@@ -2,16 +2,18 @@
 % Please edit documentation in R/dictionaries.R
 \name{zstd_dict_id}
 \alias{zstd_dict_id}
-\title{Get the ID of a dictionary}
+\title{Get the Dictionary ID of a dictionary or compressed data}
 \usage{
 zstd_dict_id(dict)
 }
 \arguments{
-\item{dict}{raw vector}
+\item{dict}{raw vector or filename}
 }
 \value{
-dictionary id.  if data does not represent a dictionary, returns 0
+Signed integer value representing the Dictionary ID. If data does not 
+        represent a dictionary, or data which was compressed with a dictionary,
+        then a value of 0 is returned.
 }
 \description{
-Get the ID of a dictionary
+Get the Dictionary ID of a dictionary or compressed data
 }

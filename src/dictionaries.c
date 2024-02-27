@@ -18,13 +18,45 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Retrieve the ID of the dictionary.  Returns zero if not a dictionary
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_dict_id_(SEXP dict_) {
-  // ZDICTLIB_API unsigned ZDICT_getDictID(const void* dictBuffer, size_t dictSize);
+SEXP zstd_dict_id_(SEXP src_) {
   
-  uint32_t id = ZDICT_getDictID(RAW(dict_), length(dict_));
+  // ZDICTLIB_API unsigned ZDICT_getDictID(const void* dictBuffer, size_t dictSize);
+  // ZSTDLIB_API unsigned ZSTD_getDictID_fromFrame(const void* src, size_t srcSize);
+  void *src;
+  size_t src_size;
+  
+  
+  if (TYPEOF(src_) == RAWSXP) {
+    src = (void *)RAW(src_);
+    src_size = (size_t)length(src_);
+  } else if (TYPEOF(src_) == STRSXP) {
+    const char *filename = CHAR(STRING_ELT(src_, 0));
+    FILE *fp = fopen(filename, "rb");
+    if (fp == NULL) {
+      error("zstd_dict_id_for_buffer_() couldn't open file '%s'", filename);
+    }
+    char buf[ZSTD_FRAMEHEADERSIZE_MAX];
+    size_t bytes_read = fread(buf, 1, sizeof(buf), fp);
+    fclose(fp);
+    src = buf;
+    src_size = bytes_read;
+  } else {
+    error("zstd_dict_id_for_buffer_(): Currently only supports raw vector input");
+  } 
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Try and get DictID as if this was a compressed buffer,
+  // If this fails (id == 0), then try and get Dict ID as if this was a dictionary
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  uint32_t id = ZSTD_getDictID_fromFrame(src, src_size);
+  if (id == 0) {
+    id = ZDICT_getDictID(src, src_size);
+  }
   
   return ScalarInteger((int32_t)id);
 }
+
+
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
