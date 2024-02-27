@@ -85,7 +85,7 @@ SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
   if (isNull(dctx_)) {
-    dctx = init_dctx();
+    dctx = init_dctx(0);
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   }
