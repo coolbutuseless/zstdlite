@@ -6,3 +6,7 @@
 ^working$
 ^.devcontainer$
 ^data-raw$
+^pkgdown$
+^LICENSE\.md$
+^doc$
+^Meta$
