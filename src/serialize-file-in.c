@@ -77,7 +77,7 @@ void read_bytes_from_stream_file(R_inpstream_t stream, void *dst, int length) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_outBuffer output = {
     .dst  = dst, 
-    .size = length, 
+    .size = (size_t)length, 
     .pos  = 0 
   };
   

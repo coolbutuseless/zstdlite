@@ -62,7 +62,7 @@ void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
   static unsigned char zstd_raw[OUTSIZE];
   FILE *fp = *(buf->fp);
   
-  if (buf->uncompressed_pos + length >= buf->uncompressed_size) {
+  if (buf->uncompressed_pos + (size_t)length >= buf->uncompressed_size) {
     
     // Compress current serialize buffer 
     ZSTD_inBuffer input = {
@@ -102,7 +102,7 @@ void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
     if (length >= buf->uncompressed_size) {
       ZSTD_inBuffer input = {
         .src  = src, 
-        .size = length, 
+        .size = (size_t)length, 
         .pos  = 0
       };
       
@@ -126,7 +126,7 @@ void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
   }
   
   memcpy(buf->uncompressed_data + buf->uncompressed_pos, src, length);
-  buf->uncompressed_pos += length;
+  buf->uncompressed_pos += (size_t)length;
 }
 
 
@@ -174,7 +174,7 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP level_, SEXP num_th
   // For streaming compression, need to manually set the 
   // number of uncompressed bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, num_serialized_bytes);
+  size_t res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, (unsigned long long)num_serialized_bytes);
   if (ZSTD_isError(res)) {
     error("zstd_serialize_stream_file(): Error on pledge size\n");
   }

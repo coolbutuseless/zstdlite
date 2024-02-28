@@ -18,7 +18,7 @@ unsigned char *read_file(const char *filename, size_t *src_size) {
   FILE *fp = fopen(filename, "rb");
   if (fp == NULL) error("read_file(): Couldn't open file '%s'", filename);
   fseek(fp, 0, SEEK_END);
-  size_t fsize = ftell(fp);
+  size_t fsize = (size_t)ftell(fp);
   fseek(fp, 0, SEEK_SET);  /* same as rewind(f); */
   
   unsigned char *buf = malloc(fsize);

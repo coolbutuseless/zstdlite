@@ -84,7 +84,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   }
   
   size_t dictBufferCapacity = (size_t)asInteger(size_);
-  uint32_t nbSamples = length(samples_);
+  uint32_t nbSamples = (uint32_t)length(samples_);
   
   if (nbSamples == 0) {
     error("zstd_train_dictionary(): No samples provided");
@@ -118,7 +118,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
     error("zstd_train_dictionary(): Could not allocate %i * %zu = %zu bytes for 'samplesSizes'", nbSamples, sizeof(size_t), nbSamples * sizeof(size_t));
   }
 
-  SEXP dictBuffer_ = PROTECT(allocVector(RAWSXP, dictBufferCapacity));
+  SEXP dictBuffer_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dictBufferCapacity));
   unsigned char *dictBuffer = (unsigned char *)RAW(dictBuffer_);
 
   size_t pos = 0;
@@ -174,14 +174,14 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
     //
     ZDICT_cover_params_t params;
     memset(&params, 0, sizeof(params));
-    uint32_t optim_shrink_allow  = asInteger(optim_shrink_allow_);
+    uint32_t optim_shrink_allow  = (uint32_t)asInteger(optim_shrink_allow_);
     if (optim_shrink_allow > 0) {
       params.shrinkDict = 1;
       params.shrinkDictMaxRegression = optim_shrink_allow;
     }    
     actual_dict_size = ZDICT_optimizeTrainFromBuffer_cover(
       dictBuffer, dictBufferCapacity,
-      samplesBuffer, samplesSizes, nbSamples, &params);
+      samplesBuffer, samplesSizes, (uint32_t)nbSamples, &params);
   }
   
   if (ZDICT_isError(actual_dict_size)) {
@@ -202,8 +202,8 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
     // Truncate the user-viewable size of the RAW vector
     // Requires: R_VERSION >= R_Version(3, 4, 0)
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    SETLENGTH(dictBuffer_, actual_dict_size);
-    SET_TRUELENGTH(dictBuffer_, dictBufferCapacity);
+    SETLENGTH(dictBuffer_, (R_xlen_t)actual_dict_size);
+    SET_TRUELENGTH(dictBuffer_, (R_xlen_t)dictBufferCapacity);
     SET_GROWABLE_BIT(dictBuffer_);
   }
 

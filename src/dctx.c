@@ -127,7 +127,7 @@ SEXP init_dctx_(SEXP dict_) {
   if (!isNull(dict_)) {
     size_t status;
     if (TYPEOF(dict_) == RAWSXP) {
-      status = ZSTD_DCtx_loadDictionary(dctx, RAW(dict_), length(dict_));
+      status = ZSTD_DCtx_loadDictionary(dctx, RAW(dict_), (size_t)length(dict_));
     } else if (TYPEOF(dict_) == STRSXP) {
       const char *filename = CHAR(STRING_ELT(dict_, 0));
       size_t fsize;

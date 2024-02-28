@@ -43,12 +43,12 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // calculate maximum possible size of compressed buffer in the worst case
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int dstCapacity  = ZSTD_compressBound(src_size);
+  size_t dstCapacity  = (size_t)ZSTD_compressBound(src_size);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Allocate a raw R vector to hold anything up to this size
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
+  SEXP dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dstCapacity));
   char *dst = (char *)RAW(dst_);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -100,8 +100,8 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
   // Requires: R_VERSION >= R_Version(3, 4, 0)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (num_compressed_bytes < dstCapacity) {
-    SETLENGTH(dst_, num_compressed_bytes);
-    SET_TRUELENGTH(dst_, dstCapacity);
+    SETLENGTH(dst_, (R_xlen_t)num_compressed_bytes);
+    SET_TRUELENGTH(dst_, (R_xlen_t)dstCapacity);
     SET_GROWABLE_BIT(dst_);
   }
 
@@ -129,7 +129,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_) {
     src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
   } else if (TYPEOF(src_) == RAWSXP) {
     src = RAW(src_);
-    src_size = length(src_);
+    src_size = (size_t)length(src_);
   } else {
     error("zstd_compress_() only accepts raw vectors or filenames");
   }
@@ -138,12 +138,12 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_) {
   // Find the number of bytes of compressed data in the frame
   // ZSTDLIB_API size_t ZSTD_findFrameCompressedSize(const void* src, size_t srcSize);
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int compressedSize = ZSTD_findFrameCompressedSize(src, src_size);
-
+  size_t compressedSize = ZSTD_findFrameCompressedSize(src, src_size);
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Determine the final decompressed size in number of bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int dstCapacity = (int)ZSTD_getFrameContentSize(src, compressedSize);
+  size_t dstCapacity = ZSTD_getFrameContentSize(src, compressedSize);
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create a decompression buffer of the exact required size
@@ -154,7 +154,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_) {
   unsigned char *dst;
   
   if (return_raw) {
-    dst_ = PROTECT(allocVector(RAWSXP, dstCapacity));
+    dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dstCapacity));
     dst = (void *)RAW(dst_);
   } else {
     dst_ = PROTECT(allocVector(STRSXP, 1));
