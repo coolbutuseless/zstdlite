@@ -46918,9 +46918,10 @@ ZDICTLIB_STATIC_API size_t ZDICT_optimizeTrainFromBuffer_cover(
  */
 
 /*- Compiler specifics -*/
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wshorten-64-to-32"
-#endif
+// zstdlite pragma removal to silence CRAN issues. Mike 2024-02-28
+// #ifdef __clang__
+// #pragma clang diagnostic ignored "-Wshorten-64-to-32"
+// #endif
 
 #if defined(_MSC_VER)
 #  pragma warning(disable : 4244)
