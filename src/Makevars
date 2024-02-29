@@ -11,8 +11,5 @@ $(SHLIB): $(PKG_LIBS)
 libzstd.a: $(LIBZSTD)
 	$(AR) rcs libzstd.a $(LIBZSTD)
   
-$(LIBZSTD): zstd/zstd.c
-	$(CC) $(ALL_CPPFLAGS) $(PKG_CFLAGS) -fPIC  $(CFLAGS) -c zstd/zstd.c -o zstd/zstd.o
-  
 clean:
 	rm -f  $(SHLIB) $(OBJECTS) $(LIBZSTD) ./libzstd.a
