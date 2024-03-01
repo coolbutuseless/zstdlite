@@ -10,7 +10,7 @@ test_that("vanilla stream implementation works", {
   
   
   res_stream <- zstd_serialize(mtcars)
-  res_stream <- .Call("zstd_unserialize_stream_", res_stream, dctx = NULL)
+  res_stream <- .Call("zstd_unserialize_stream_", res_stream, dctx = NULL, list())
   
   expect_identical(res_stream, mtcars)
   

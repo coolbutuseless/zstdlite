@@ -21,8 +21,8 @@ zstd_serialize_stream <- function(robj, ..., cctx = NULL) {
 #'
 #' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_unserialize_stream <- function(src, dctx = NULL) {
-  .Call(zstd_unserialize_stream_, src, dctx)
+zstd_unserialize_stream <- function(src, ..., dctx = NULL) {
+  .Call(zstd_unserialize_stream_, src, dctx, list(...))
 }
 
 
@@ -48,8 +48,8 @@ zstd_serialize_stream_file <- function(robj, file, ..., cctx = NULL) {
 #'
 #' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_unserialize_stream_file <- function(src, dctx = NULL) {
-  .Call(zstd_unserialize_stream_file_, src, dctx)
+zstd_unserialize_stream_file <- function(src, ..., dctx = NULL) {
+  .Call(zstd_unserialize_stream_file_, src, dctx, list(...))
 }
 
 

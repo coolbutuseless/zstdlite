@@ -12,10 +12,10 @@ extern SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_);
 extern SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_);
 
 extern SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP cctx_, SEXP opts_);
-extern SEXP zstd_unserialize_stream_file_(SEXP raw_vec_, SEXP dctx_);
+extern SEXP zstd_unserialize_stream_file_(SEXP raw_vec_, SEXP dctx_, SEXP opts_);
 
 extern SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_);
-extern SEXP zstd_unserialize_stream_(SEXP raw_vec_, SEXP dctx_);
+extern SEXP zstd_unserialize_stream_(SEXP raw_vec_, SEXP dctx_, SEXP opts_);
 
 extern SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_shrink_allow_);
 extern SEXP zstd_dict_id_(SEXP dict_);
@@ -35,10 +35,10 @@ static const R_CallMethodDef CEntries[] = {
   {"zstd_decompress_"             , (DL_FUNC) &zstd_decompress_             , 4},
   
   {"zstd_serialize_stream_file_"  , (DL_FUNC) &zstd_serialize_stream_file_  , 4},
-  {"zstd_unserialize_stream_file_", (DL_FUNC) &zstd_unserialize_stream_file_, 2},
+  {"zstd_unserialize_stream_file_", (DL_FUNC) &zstd_unserialize_stream_file_, 3},
   
   {"zstd_serialize_stream_"       , (DL_FUNC) &zstd_serialize_stream_       , 3},
-  {"zstd_unserialize_stream_"     , (DL_FUNC) &zstd_unserialize_stream_     , 2},
+  {"zstd_unserialize_stream_"     , (DL_FUNC) &zstd_unserialize_stream_     , 3},
   
   {"zstd_train_dictionary_"       , (DL_FUNC) &zstd_train_dictionary_       , 4},
   {"zstd_dict_id_"                , (DL_FUNC) &zstd_dict_id_                , 1},
