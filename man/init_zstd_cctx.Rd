@@ -4,12 +4,19 @@
 \alias{init_zstd_cctx}
 \title{Initialise a ZSTD compression context}
 \usage{
-init_zstd_cctx(level = 3L, num_threads = 1L, dict = NULL)
+init_zstd_cctx(
+  level = 3L,
+  num_threads = 1L,
+  include_checksum = FALSE,
+  dict = NULL
+)
 }
 \arguments{
 \item{level}{compression level. Default: 3}
 
 \item{num_threads}{number of compression threads. Default 1}
+
+\item{include_checksum}{include a checksum with the compressed data. Default: FALSE}
 
 \item{dict}{dictionary. Can either be a raw vector or a filename.  The
 dict can be either a raw vector or a filename.}

@@ -125,7 +125,7 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
   if (!isNull(dctx_)) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   } else {
-    dctx = init_dctx(0);
+    dctx = init_dctx(1, 0); // validate checksum, stable buffers
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

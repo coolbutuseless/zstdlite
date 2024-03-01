@@ -2,8 +2,8 @@
 #include <R.h>
 #include <Rinternals.h>
 
-extern SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP dict_);
-extern SEXP init_dctx_(SEXP dict_);
+extern SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP include_checksum_, SEXP dict_);
+extern SEXP init_dctx_(SEXP validate_checksum_, SEXP dict_);
 
 extern SEXP zstd_compress_(SEXP src_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_);
 extern SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_);
@@ -25,8 +25,8 @@ extern SEXP zstd_dict_id_(SEXP dict_);
 // .Call   R_CallMethodDef
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static const R_CallMethodDef CEntries[] = {
-  {"init_cctx_"                   , (DL_FUNC) &init_cctx_                   , 3},
-  {"init_dctx_"                   , (DL_FUNC) &init_dctx_                   , 1},
+  {"init_cctx_"                   , (DL_FUNC) &init_cctx_                   , 4},
+  {"init_dctx_"                   , (DL_FUNC) &init_dctx_                   , 2},
   
   {"zstd_serialize_"              , (DL_FUNC) &zstd_serialize_              , 5},
   {"zstd_unserialize_"            , (DL_FUNC) &zstd_unserialize_            , 2},

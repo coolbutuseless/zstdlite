@@ -60,14 +60,39 @@ static void zstd_dctx_finalizer(SEXP dctx_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialize a ZSTD_DCtx from C
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ZSTD_DCtx *init_dctx(int stable_buffers) {
+ZSTD_DCtx *init_dctx(int validate_checksum, int stable_buffers) {
   ZSTD_DCtx *dctx = ZSTD_createDCtx();
   if (dctx == NULL) {
     error("init_dctx(): Couldn't initialse memory for 'dctx'");
   }
   
+  size_t res;
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // ZSTD_d_forceIgnoreChecksum
+  // Experimental parameter.
+  // Default is 0 == disabled. Set to 1 to enable
+  // 
+  // Tells the decompressor to skip checksum validation during decompression, regardless
+  // of whether checksumming was specified during compression. This offers some
+  // slight performance benefits, and may be useful for debugging.
+  // Param has values of type ZSTD_forceIgnoreChecksum_e
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (!validate_checksum) {
+    res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_forceIgnoreChecksum, 1);
+    if (ZSTD_isError(res)) {
+      error("init_dctx(): Could not set 'ZSTD_d_forceIgnoreChecksum'");
+    } 
+  }
+  
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // NOTE: The user doesn't get to set this option
+  //       It is set by 'zstdlite' C functions depeneding on whether streaming 
+  //       is used or not.
+  //       i.e. streaming buffers are NOT stable
+  //
+  //
   // ZSTD v1.5.5
   // ZSTD_d_stableOutBuffer
   // Experimental parameter.
@@ -101,7 +126,7 @@ ZSTD_DCtx *init_dctx(int stable_buffers) {
   // 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (stable_buffers) {
-    size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_stableOutBuffer, 1);
+    res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_stableOutBuffer, 1);
     if (ZSTD_isError(res)) {
       error("init_dctx(): Could not set 'ZSTD_d_stableOutBuffer'");
     }
@@ -117,9 +142,9 @@ ZSTD_DCtx *init_dctx(int stable_buffers) {
 // Initialize a ZSTD_DCtx pointer from R
 // @param dict could be a raw vector holding a dictionary or a filename
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP init_dctx_(SEXP dict_) {
+SEXP init_dctx_(SEXP validate_checksum_, SEXP dict_) {
 
-  ZSTD_DCtx *dctx = init_dctx(0);
+  ZSTD_DCtx *dctx = init_dctx(asLogical(validate_checksum_), 0);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Handle dictionary

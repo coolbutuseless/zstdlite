@@ -4,10 +4,16 @@
 \alias{init_zstd_dctx}
 \title{Initialise a ZSTD compression context}
 \usage{
-init_zstd_dctx(dict = NULL)
+init_zstd_dctx(validate_checksum = TRUE, dict = NULL)
 }
 \arguments{
-\item{dict}{Dictionary. Default: NULL (no dictioary)}
+\item{validate_checksum}{Should the checksum of the data be validated if it is present? 
+Default: TRUE.  Set to \code{FALSE} to ignore the checksum, which 
+can lead to a minor speed improvement.
+If no checksum is present in the compressed data, then this option has no 
+effect.}
+
+\item{dict}{Dictionary. Default: NULL (no dictionary)}
 }
 \value{
 ZSTD Decompression Context

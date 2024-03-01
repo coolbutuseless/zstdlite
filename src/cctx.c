@@ -17,7 +17,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialise a cctx from C
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ZSTD_CCtx *init_cctx(int level, int num_threads, int stable_buffers) {
+ZSTD_CCtx *init_cctx(int level, int num_threads, int include_checksum, int stable_buffers) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create context
@@ -28,6 +28,17 @@ ZSTD_CCtx *init_cctx(int level, int num_threads, int stable_buffers) {
   }
   
   size_t res;
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Add checksum?
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (include_checksum) {
+    res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_checksumFlag, 1);
+    if (ZSTD_isError(res)) {
+      error("init_cctx(): Couldn't set checksum flag");  
+    }
+  }
+  
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Set compression level
@@ -231,9 +242,14 @@ static void zstd_cctx_finalizer(SEXP cctx_) {
 // Initialize a ZSTD_CCtx pointer from R
 // @param dict could be a raw vector holding a dictionary or a filename
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP dict_) {
+SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP include_checksum_, SEXP dict_) {
   
-  ZSTD_CCtx* cctx = init_cctx(asInteger(level_), asInteger(num_threads_), 0);
+  ZSTD_CCtx* cctx = init_cctx(
+    asInteger(level_), 
+    asInteger(num_threads_), 
+    asLogical(include_checksum_),
+    0  // StableBuffers
+  );
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Handle dictionaries

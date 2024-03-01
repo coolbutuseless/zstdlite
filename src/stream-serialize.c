@@ -130,7 +130,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP level_, SEXP num_threads_, SEXP cctx
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) {
-    buf.cctx = init_cctx(asInteger(level_), asInteger(num_threads_), 0);
+    buf.cctx = init_cctx(asInteger(level_), asInteger(num_threads_), 0, 0); // include_checksum, stable_buffers
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
   }

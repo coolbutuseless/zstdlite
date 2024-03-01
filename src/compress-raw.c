@@ -56,7 +56,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx(asInteger(level_), asInteger(num_threads_), 1); // stable_buffers
+    cctx = init_cctx(asInteger(level_), asInteger(num_threads_), 0, 1); // include_checksum, stable_buffers
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 1);
@@ -168,7 +168,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_) {
   ZSTD_DCtx * dctx;
   
   if (isNull(dctx_)) {
-    dctx = init_dctx(1);
+    dctx = init_dctx(1, 1); // validate checksum, stable buffers
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
     size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_stableOutBuffer, 1);
