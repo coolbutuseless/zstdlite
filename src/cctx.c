@@ -14,6 +14,74 @@
 #include "cctx.h"
 #include "utils.h"
 
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ZSTD_c_stableInBuffer
+// Experimental parameter.
+// Default is 0 == disabled. Set to 1 to enable.
+// 
+// Tells the compressor that input data presented with ZSTD_inBuffer
+// will ALWAYS be the same between calls.
+// Technically, the @src pointer must never be changed,
+// and the @pos field can only be updated by zstd.
+// However, it's possible to increase the @size field,
+// allowing scenarios where more data can be appended after compressions starts.
+// These conditions are checked by the compressor,
+// and compression will fail if they are not respected.
+// Also, data in the ZSTD_inBuffer within the range [src, src + pos)
+// MUST not be modified during compression or it will result in data corruption.
+// 
+// When this flag is enabled zstd won't allocate an input window buffer,
+// because the user guarantees it can reference the ZSTD_inBuffer until
+// the frame is complete. But, it will still allocate an output buffer
+// large enough to fit a block (see ZSTD_c_stableOutBuffer). This will also
+// avoid the memcpy() from the input buffer to the input window buffer.
+// 
+// NOTE: So long as the ZSTD_inBuffer always points to valid memory, using
+// this flag is ALWAYS memory safe, and will never access out-of-bounds
+// memory. However, compression WILL fail if conditions are not respected.
+// 
+// WARNING: The data in the ZSTD_inBuffer in the range [src, src + pos) MUST
+// not be modified during compression or it will result in data corruption.
+// This is because zstd needs to reference data in the ZSTD_inBuffer to find
+// matches. Normally zstd maintains its own window buffer for this purpose,
+// but passing this flag tells zstd to rely on user provided buffer instead.
+// 
+// ZSTD_c_stableOutBuffer
+// Experimental parameter.
+// Default is 0 == disabled. Set to 1 to enable.
+// 
+// Tells he compressor that the ZSTD_outBuffer will not be resized between
+// calls. Specifically: (out.size - out.pos) will never grow. This gives the
+// compressor the freedom to say: If the compressed data doesn't fit in the
+// output buffer then return ZSTD_error_dstSizeTooSmall. This allows us to
+// always decompress directly into the output buffer, instead of decompressing
+// into an internal buffer and copying to the output buffer.
+// 
+// When this flag is enabled zstd won't allocate an output buffer, because
+// it can write directly to the ZSTD_outBuffer. It will still allocate the
+// input window buffer (see ZSTD_c_stableInBuffer).
+// 
+// Zstd will check that (out.size - out.pos) never grows and return an error
+// if it does. While not strictly necessary, this should prevent surprises.
+// 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void cctx_set_stable_buffers(ZSTD_CCtx *cctx) {
+  
+  size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 1);
+  if (ZSTD_isError(res)) {
+    error("cctx_set_stable_buffers() could not set 'ZSTD_c_stableInBuffer'");
+  }
+  
+  res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableOutBuffer, 1);
+  if (ZSTD_isError(res)) {
+    error("cctx_set_stable_buffers() could not set 'ZSTD_c_stableOutBuffer'");
+  }
+}
+
+
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialise a cctx from C
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,66 +131,11 @@ ZSTD_CCtx *init_cctx(int level, int num_threads, int include_checksum, int stabl
   
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // ZSTD_c_stableInBuffer
-  // Experimental parameter.
-  // Default is 0 == disabled. Set to 1 to enable.
-  // 
-  // Tells the compressor that input data presented with ZSTD_inBuffer
-  // will ALWAYS be the same between calls.
-  // Technically, the @src pointer must never be changed,
-  // and the @pos field can only be updated by zstd.
-  // However, it's possible to increase the @size field,
-  // allowing scenarios where more data can be appended after compressions starts.
-  // These conditions are checked by the compressor,
-  // and compression will fail if they are not respected.
-  // Also, data in the ZSTD_inBuffer within the range [src, src + pos)
-  // MUST not be modified during compression or it will result in data corruption.
-  // 
-  // When this flag is enabled zstd won't allocate an input window buffer,
-  // because the user guarantees it can reference the ZSTD_inBuffer until
-  // the frame is complete. But, it will still allocate an output buffer
-  // large enough to fit a block (see ZSTD_c_stableOutBuffer). This will also
-  // avoid the memcpy() from the input buffer to the input window buffer.
-  // 
-  // NOTE: So long as the ZSTD_inBuffer always points to valid memory, using
-  // this flag is ALWAYS memory safe, and will never access out-of-bounds
-  // memory. However, compression WILL fail if conditions are not respected.
-  // 
-  // WARNING: The data in the ZSTD_inBuffer in the range [src, src + pos) MUST
-  // not be modified during compression or it will result in data corruption.
-  // This is because zstd needs to reference data in the ZSTD_inBuffer to find
-  // matches. Normally zstd maintains its own window buffer for this purpose,
-  // but passing this flag tells zstd to rely on user provided buffer instead.
-  // 
-  // ZSTD_c_stableOutBuffer
-  // Experimental parameter.
-  // Default is 0 == disabled. Set to 1 to enable.
-  // 
-  // Tells he compressor that the ZSTD_outBuffer will not be resized between
-  // calls. Specifically: (out.size - out.pos) will never grow. This gives the
-  // compressor the freedom to say: If the compressed data doesn't fit in the
-  // output buffer then return ZSTD_error_dstSizeTooSmall. This allows us to
-  // always decompress directly into the output buffer, instead of decompressing
-  // into an internal buffer and copying to the output buffer.
-  // 
-  // When this flag is enabled zstd won't allocate an output buffer, because
-  // it can write directly to the ZSTD_outBuffer. It will still allocate the
-  // input window buffer (see ZSTD_c_stableInBuffer).
-  // 
-  // Zstd will check that (out.size - out.pos) never grows and return an error
-  // if it does. While not strictly necessary, this should prevent surprises.
-  // 
+  // Stable buffers?
+  //   - streaming compression uses *UNSTABLE* buffers
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (stable_buffers) {
-    res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 1);
-    if (ZSTD_isError(res)) {
-      error("init_cctx() could not set 'ZSTD_c_stableInBuffer'");
-    }
-    
-    res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableOutBuffer, 1);
-    if (ZSTD_isError(res)) {
-      error("init_cctx() could not set 'ZSTD_c_stableOutBuffer'");
-    }
+    cctx_set_stable_buffers(cctx);
   }
   
   

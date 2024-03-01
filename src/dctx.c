@@ -56,6 +56,53 @@ static void zstd_dctx_finalizer(SEXP dctx_) {
 }
 
 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// NOTE: The user doesn't get to set this option
+//       It is set by 'zstdlite' C functions depeneding on whether streaming 
+//       is used or not.
+//       i.e. streaming buffers are NOT stable
+//
+//
+// ZSTD v1.5.5
+// ZSTD_d_stableOutBuffer
+// Experimental parameter.
+// Default is 0 == disabled. Set to 1 to enable.
+// 
+// Tells the decompressor that the ZSTD_outBuffer will ALWAYS be the same
+// between calls, except for the modifications that zstd makes to pos (the
+// caller must not modify pos). This is checked by the decompressor, and
+// decompression will fail if it ever changes. Therefore the ZSTD_outBuffer
+// MUST be large enough to fit the entire decompressed frame. This will be
+// checked when the frame content size is known. The data in the ZSTD_outBuffer
+// in the range [dst, dst + pos) MUST not be modified during decompression
+// or you will get data corruption.
+// 
+// When this flag is enabled zstd won't allocate an output buffer, because
+// it can write directly to the ZSTD_outBuffer, but it will still allocate
+// an input buffer large enough to fit any compressed block. This will also
+// avoid the memcpy() from the internal output buffer to the ZSTD_outBuffer.
+// If you need to avoid the input buffer allocation use the buffer-less
+// streaming API.
+// 
+// NOTE: So long as the ZSTD_outBuffer always points to valid memory, using
+// this flag is ALWAYS memory safe, and will never access out-of-bounds
+// memory. However, decompression WILL fail if you violate the preconditions.
+// 
+// WARNING: The data in the ZSTD_outBuffer in the range [dst, dst + pos) MUST
+// not be modified during decompression or you will get data corruption. This
+// is because zstd needs to reference data in the ZSTD_outBuffer to regenerate
+// matches. Normally zstd maintains its own buffer for this purpose, but passing
+// this flag tells zstd to use the user provided buffer.
+// 
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void dctx_set_stable_buffers(ZSTD_DCtx *dctx) {
+  size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_stableOutBuffer, 1);
+  if (ZSTD_isError(res)) {
+    error("zstd_decompress_(): Could not set 'ZSTD_d_stableOutBuffer'");
+  }
+}
+
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Initialize a ZSTD_DCtx from C
@@ -65,8 +112,6 @@ ZSTD_DCtx *init_dctx(int validate_checksum, int stable_buffers) {
   if (dctx == NULL) {
     error("init_dctx(): Couldn't initialse memory for 'dctx'");
   }
-  
-  size_t res;
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // ZSTD_d_forceIgnoreChecksum
@@ -79,57 +124,17 @@ ZSTD_DCtx *init_dctx(int validate_checksum, int stable_buffers) {
   // Param has values of type ZSTD_forceIgnoreChecksum_e
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!validate_checksum) {
-    res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_forceIgnoreChecksum, 1);
+    size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_forceIgnoreChecksum, 1);
     if (ZSTD_isError(res)) {
       error("init_dctx(): Could not set 'ZSTD_d_forceIgnoreChecksum'");
     } 
   }
   
-  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // NOTE: The user doesn't get to set this option
-  //       It is set by 'zstdlite' C functions depeneding on whether streaming 
-  //       is used or not.
-  //       i.e. streaming buffers are NOT stable
-  //
-  //
-  // ZSTD v1.5.5
-  // ZSTD_d_stableOutBuffer
-  // Experimental parameter.
-  // Default is 0 == disabled. Set to 1 to enable.
-  // 
-  // Tells the decompressor that the ZSTD_outBuffer will ALWAYS be the same
-  // between calls, except for the modifications that zstd makes to pos (the
-  // caller must not modify pos). This is checked by the decompressor, and
-  // decompression will fail if it ever changes. Therefore the ZSTD_outBuffer
-  // MUST be large enough to fit the entire decompressed frame. This will be
-  // checked when the frame content size is known. The data in the ZSTD_outBuffer
-  // in the range [dst, dst + pos) MUST not be modified during decompression
-  // or you will get data corruption.
-  // 
-  // When this flag is enabled zstd won't allocate an output buffer, because
-  // it can write directly to the ZSTD_outBuffer, but it will still allocate
-  // an input buffer large enough to fit any compressed block. This will also
-  // avoid the memcpy() from the internal output buffer to the ZSTD_outBuffer.
-  // If you need to avoid the input buffer allocation use the buffer-less
-  // streaming API.
-  // 
-  // NOTE: So long as the ZSTD_outBuffer always points to valid memory, using
-  // this flag is ALWAYS memory safe, and will never access out-of-bounds
-  // memory. However, decompression WILL fail if you violate the preconditions.
-  // 
-  // WARNING: The data in the ZSTD_outBuffer in the range [dst, dst + pos) MUST
-  // not be modified during decompression or you will get data corruption. This
-  // is because zstd needs to reference data in the ZSTD_outBuffer to regenerate
-  // matches. Normally zstd maintains its own buffer for this purpose, but passing
-  // this flag tells zstd to use the user provided buffer.
-  // 
+  // Stable buffers?
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (stable_buffers) {
-    res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_stableOutBuffer, 1);
-    if (ZSTD_isError(res)) {
-      error("init_dctx(): Could not set 'ZSTD_d_stableOutBuffer'");
-    }
+    dctx_set_stable_buffers(dctx);
   }
   
   
