@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
 Title: Compression and Object Serialization with Zstandard
-Version: 0.2.4.9006
+Version: 0.2.4.9007
 Authors@R: c(
     person("Mike", "Cheng", role = c("aut", "cre", 'cph'), 
     email = "mikefc@coolbutuseless.com"),

@@ -13,7 +13,15 @@
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 init_zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALSE, dict = NULL) {
-  .Call(init_cctx_, level, num_threads, include_checksum, dict)
+  .Call(
+    init_cctx_, 
+    list(
+      level            = level, 
+      num_threads      =  num_threads, 
+      include_checksum = include_checksum, 
+      dict             = dict
+    )
+  )
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -30,5 +38,11 @@ init_zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALS
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 init_zstd_dctx <- function(validate_checksum = TRUE, dict = NULL) {
-  .Call(init_dctx_, validate_checksum, dict)
+  .Call(
+    init_dctx_, 
+    list(
+      validate_checksum = validate_checksum, 
+      dict              = dict
+    )
+  )
 }

@@ -116,7 +116,7 @@ void read_bytes_from_stream_file(R_inpstream_t stream, void *dst, int length) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unserialize an object by streaming compressed data from a file
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
+SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_, SEXP opts_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Setup the Decompression Context
@@ -125,7 +125,7 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_) {
   if (!isNull(dctx_)) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   } else {
-    dctx = init_dctx(1, 0); // validate checksum, stable buffers
+    dctx = init_dctx_with_opts(opts_, 0); // Streaming does NOT have stable buffers
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -4,7 +4,7 @@
 \alias{zstd_compress}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_compress(src, file = NULL, level = 3L, num_threads = 1L, cctx = NULL)
+zstd_compress(src, file = NULL, ..., cctx = NULL)
 }
 \arguments{
 \item{src}{Source data to be compressed.  This may be a raw vector, or a
@@ -13,9 +13,7 @@ character string}
 \item{file}{filename in which to serialize data. If NULL (the default), then 
 serialize the results to a raw vector}
 
-\item{level}{compression level -5 to 22. Default: 3}
-
-\item{num_threads}{number of threads to use for compression}
+\item{...}{extra arguments passed to context initializer}
 
 \item{cctx}{ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.
 Default: NULL will create a context on the fly}

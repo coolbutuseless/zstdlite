@@ -4,23 +4,22 @@
 #' Serialize arbitrary objects to a compressed stream of bytes using Zstandard
 #'
 #' @param robj Any R object understood by \code{base::serialize()}
-#' @param level compression level -5 to 22. Default: 3
+#' @param file filename in which to serialize data. If NULL (the default), then 
+#'        serialize the results to a raw vector
 #' @param src Raw vector or filename containing a ZSTD compressed serialized representation of
 #'        an R object
-#' @param num_threads number of threads to use for compression
 #' @param cctx ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.  
 #'        Default: NULL will create a context on the fly
 #' @param dctx ZSTD Decompression Context created by \code{init_zstd_dctx()} or NULL.
 #'        Default: NULL will decompression without any context using default seetings.
-#' @param file filename in which to serialize data. If NULL (the default), then 
-#'        serialize the results to a raw vector
+#' @param ... extra arguments passed to context initializer
 #'
 #' @return serialized representation compressed into a raw byte vector
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_serialize <- function(robj, file = NULL, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call(zstd_serialize_, robj, file, level, num_threads, cctx)
+zstd_serialize <- function(robj, file = NULL, ..., cctx = NULL) {
+  .Call(zstd_serialize_, robj, file, cctx, list(...))
 }
 
 
@@ -29,8 +28,8 @@ zstd_serialize <- function(robj, file = NULL, level = 3L, num_threads = 1L, cctx
 #' @rdname zstd_serialize
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_unserialize <- function(src, dctx = NULL) {
-  .Call(zstd_unserialize_, src, dctx)
+zstd_unserialize <- function(src, ..., dctx = NULL) {
+  .Call(zstd_unserialize_, src, dctx, list(...))
 }
 
 
@@ -47,8 +46,8 @@ zstd_unserialize <- function(src, dctx = NULL) {
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_compress <- function(src, file = NULL, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call(zstd_compress_, src, file, level, num_threads, cctx)
+zstd_compress <- function(src, file = NULL, ..., cctx = NULL) {
+  .Call(zstd_compress_, src, file, cctx, list(...))
 }
 
 
@@ -63,7 +62,7 @@ zstd_compress <- function(src, file = NULL, level = 3L, num_threads = 1L, cctx =
 #' 
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_decompress <- function(src, type = 'raw', dctx = NULL) {
-  .Call(zstd_decompress_, src, type, dctx)
+zstd_decompress <- function(src, type = 'raw', ..., dctx = NULL) {
+  .Call(zstd_decompress_, src, type, dctx, list(...))
 } 
 

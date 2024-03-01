@@ -21,7 +21,7 @@
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
+SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack 'raw' or 'string' arguments
@@ -56,7 +56,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx(asInteger(level_), asInteger(num_threads_), 0, 1); // include_checksum, stable_buffers
+    cctx = init_cctx_with_opts(opts_, 1); // stable buffers
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     cctx_set_stable_buffers(cctx);
@@ -114,7 +114,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_) {
+SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack data
@@ -165,7 +165,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_) {
   ZSTD_DCtx * dctx;
   
   if (isNull(dctx_)) {
-    dctx = init_dctx(1, 1); // validate checksum, stable buffers
+    dctx = init_dctx_with_opts(opts_, 1); // This method has a stable buffer
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
     dctx_set_stable_buffers(dctx);

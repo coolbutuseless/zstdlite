@@ -21,13 +21,13 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a compressed raw vector
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_) {
+SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // If 'file_' is set, then use streaming interface
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!isNull(file_)) {
-    return zstd_serialize_stream_file_(robj_, file_, level_, num_threads_, cctx_);
+    return zstd_serialize_stream_file_(robj_, file_, cctx_, opts_);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -69,7 +69,7 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP level_, SEXP num_threads_, SEX
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx(asInteger(level_), asInteger(num_threads_), 0, 1); // include_checksum, stable_buffers
+    cctx = init_cctx_with_opts(opts_, 1);
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     cctx_set_stable_buffers(cctx);
@@ -109,13 +109,13 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP level_, SEXP num_threads_, SEX
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
+SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // if 'src_' is a filename, then handle it with the streaming interface
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (TYPEOF(src_) == STRSXP) {
-    return zstd_unserialize_stream_file_(src_, dctx_);
+    return zstd_unserialize_stream_file_(src_, dctx_, opts_);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -145,7 +145,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
   if (isNull(dctx_)) {
-    dctx = init_dctx(1, 1); // validate checksum, stable buffers
+    dctx = init_dctx_with_opts(opts_, 1);  // Has a stable buffer
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
     dctx_set_stable_buffers(dctx);

@@ -1,4 +1,9 @@
 
+# zstdlite 0.2.4.9007 2024-03-01
+
+* Tidy handling of options and initialisation of compression/decompression
+  contexts
+* Option to include checksum and validate
 
 # zstdlite 0.2.4.9006 2024-02-27
 
@@ -29,7 +34,7 @@
 
 # zstdlite 0.2.4.9002 2024-02-24
 
-* `ZSTD_dctx` can be created separatedly and passed as compression argument
+* `ZSTD_dctx` can be created separately and passed as compression argument
     * Enables re-use of same context.
     * `init_zstd_dctx()`
 * Framework in place to support dictionaries for compression/decompression.

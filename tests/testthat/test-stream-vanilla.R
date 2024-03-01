@@ -2,7 +2,7 @@
 
 test_that("vanilla stream implementation works", {
   
-  res_stream <- .Call("zstd_serialize_stream_", mtcars, level = 3L, num_threads = 1L, cctx = NULL) |>
+  res_stream <- .Call("zstd_serialize_stream_", mtcars, cctx = NULL, list(level = 3L, num_threads = 1L)) |>
     zstd_unserialize()
   
   expect_identical(res_stream, mtcars)

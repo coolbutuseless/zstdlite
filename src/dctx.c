@@ -105,29 +105,20 @@ void dctx_set_stable_buffers(ZSTD_DCtx *dctx) {
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Initialize a ZSTD_DCtx from C
+// 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ZSTD_DCtx *init_dctx(int validate_checksum, int stable_buffers) {
+ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers) {
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Defaults
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  SEXP dict_ = R_NilValue;
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Init DCtx
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx = ZSTD_createDCtx();
   if (dctx == NULL) {
     error("init_dctx(): Couldn't initialse memory for 'dctx'");
-  }
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // ZSTD_d_forceIgnoreChecksum
-  // Experimental parameter.
-  // Default is 0 == disabled. Set to 1 to enable
-  // 
-  // Tells the decompressor to skip checksum validation during decompression, regardless
-  // of whether checksumming was specified during compression. This offers some
-  // slight performance benefits, and may be useful for debugging.
-  // Param has values of type ZSTD_forceIgnoreChecksum_e
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!validate_checksum) {
-    size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_forceIgnoreChecksum, 1);
-    if (ZSTD_isError(res)) {
-      error("init_dctx(): Could not set 'ZSTD_d_forceIgnoreChecksum'");
-    } 
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -137,19 +128,49 @@ ZSTD_DCtx *init_dctx(int validate_checksum, int stable_buffers) {
     dctx_set_stable_buffers(dctx);
   }
   
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Short circuit if no opts
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (length(opts_) == 0) {
+    return dctx;
+  }
   
-  return dctx;
-}
-
-
-
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Initialize a ZSTD_DCtx pointer from R
-// @param dict could be a raw vector holding a dictionary or a filename
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP init_dctx_(SEXP validate_checksum_, SEXP dict_) {
-
-  ZSTD_DCtx *dctx = init_dctx(asLogical(validate_checksum_), 0);
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Sanity check
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (!isNewList(opts_)) {
+    error("'opts_' must be a list");
+  }
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Unpack names
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  SEXP nms_ = getAttrib(opts_, R_NamesSymbol);
+  if (isNull(nms_)) {
+    error("'opts_' must be a named list");
+  }
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Parse options from user
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  for (int i = 0; i < length(opts_); i++) {
+    const char *opt_name = CHAR(STRING_ELT(nms_, i));
+    SEXP val_ = VECTOR_ELT(opts_, i);
+    
+    if (strcmp(opt_name, "validate_checksum") == 0) {
+      int validate_checksum = asInteger(val_);
+      if (!validate_checksum) {
+        size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_forceIgnoreChecksum, 1);
+        if (ZSTD_isError(res)) {
+          error("init_dctx(): Could not set 'ZSTD_d_forceIgnoreChecksum'");
+        } 
+      }
+    } else if (strcmp(opt_name, "dict") == 0) {
+      dict_ = val_;
+    } else {
+      warning("init_dctx(): Unknown option '%s'", opt_name);
+    }
+  }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Handle dictionary
@@ -171,6 +192,19 @@ SEXP init_dctx_(SEXP validate_checksum_, SEXP dict_) {
       error("init_dctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
     }
   }
+  
+  return dctx;
+}
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Initialize a ZSTD_DCtx pointer from R
+// @param dict could be a raw vector holding a dictionary or a filename
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP init_dctx_(SEXP opts_) {
+
+  ZSTD_DCtx *dctx = init_dctx_with_opts(opts_, 0);  // Assume NOT stable buffers by default
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Wrap 'dctx' into an R external pointer

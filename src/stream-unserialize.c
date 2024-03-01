@@ -78,14 +78,14 @@ void read_bytes_from_stream(R_inpstream_t stream, void *dst, int length) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_) {
+SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_, SEXP opts_) {
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Setup Decompression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
   if (isNull(dctx_)) {
-    dctx = init_dctx(1, 0); // validate checksum, stable buffers
+    dctx = init_dctx_with_opts(opts_, 0); // Streaming does NOT have stable buffers
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   }

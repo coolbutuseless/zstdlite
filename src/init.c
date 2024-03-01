@@ -2,19 +2,19 @@
 #include <R.h>
 #include <Rinternals.h>
 
-extern SEXP init_cctx_(SEXP level_, SEXP num_threads_, SEXP include_checksum_, SEXP dict_);
-extern SEXP init_dctx_(SEXP validate_checksum_, SEXP dict_);
+extern SEXP init_cctx_(SEXP opts_);
+extern SEXP init_dctx_(SEXP opts_);
 
-extern SEXP zstd_compress_(SEXP src_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_);
-extern SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_);
+extern SEXP zstd_compress_(SEXP src_, SEXP file_, SEXP cctx_, SEXP opts_);
+extern SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_);
 
-extern SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_);
-extern SEXP zstd_unserialize_(SEXP src_, SEXP dctx_);
+extern SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_);
+extern SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_);
 
-extern SEXP zstd_serialize_stream_file_(SEXP robj_, SEXP file_, SEXP level_, SEXP num_threads_, SEXP cctx_);
+extern SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP cctx_, SEXP opts_);
 extern SEXP zstd_unserialize_stream_file_(SEXP raw_vec_, SEXP dctx_);
 
-extern SEXP zstd_serialize_stream_(SEXP robj_, SEXP level_, SEXP num_threads_, SEXP cctx_);
+extern SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_);
 extern SEXP zstd_unserialize_stream_(SEXP raw_vec_, SEXP dctx_);
 
 extern SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_shrink_allow_);
@@ -25,19 +25,19 @@ extern SEXP zstd_dict_id_(SEXP dict_);
 // .Call   R_CallMethodDef
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static const R_CallMethodDef CEntries[] = {
-  {"init_cctx_"                   , (DL_FUNC) &init_cctx_                   , 4},
-  {"init_dctx_"                   , (DL_FUNC) &init_dctx_                   , 2},
+  {"init_cctx_"                   , (DL_FUNC) &init_cctx_                   , 1},
+  {"init_dctx_"                   , (DL_FUNC) &init_dctx_                   , 1},
   
-  {"zstd_serialize_"              , (DL_FUNC) &zstd_serialize_              , 5},
-  {"zstd_unserialize_"            , (DL_FUNC) &zstd_unserialize_            , 2},
+  {"zstd_serialize_"              , (DL_FUNC) &zstd_serialize_              , 4},
+  {"zstd_unserialize_"            , (DL_FUNC) &zstd_unserialize_            , 3},
   
-  {"zstd_compress_"               , (DL_FUNC) &zstd_compress_               , 5},
-  {"zstd_decompress_"             , (DL_FUNC) &zstd_decompress_             , 3},
+  {"zstd_compress_"               , (DL_FUNC) &zstd_compress_               , 4},
+  {"zstd_decompress_"             , (DL_FUNC) &zstd_decompress_             , 4},
   
-  {"zstd_serialize_stream_file_"  , (DL_FUNC) &zstd_serialize_stream_file_  , 5},
+  {"zstd_serialize_stream_file_"  , (DL_FUNC) &zstd_serialize_stream_file_  , 4},
   {"zstd_unserialize_stream_file_", (DL_FUNC) &zstd_unserialize_stream_file_, 2},
   
-  {"zstd_serialize_stream_"       , (DL_FUNC) &zstd_serialize_stream_       , 4},
+  {"zstd_serialize_stream_"       , (DL_FUNC) &zstd_serialize_stream_       , 3},
   {"zstd_unserialize_stream_"     , (DL_FUNC) &zstd_unserialize_stream_     , 2},
   
   {"zstd_train_dictionary_"       , (DL_FUNC) &zstd_train_dictionary_       , 4},

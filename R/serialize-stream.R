@@ -8,8 +8,8 @@
 #'
 #' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_serialize_stream <- function(robj, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call(zstd_serialize_stream_, robj, level, num_threads, cctx)
+zstd_serialize_stream <- function(robj, ..., cctx = NULL) {
+  .Call(zstd_serialize_stream_, robj, cctx, list(...))
 }
 
 
@@ -36,8 +36,8 @@ zstd_unserialize_stream <- function(src, dctx = NULL) {
 #'
 #' @noRd
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_serialize_stream_file <- function(robj, file, level = 3L, num_threads = 1L, cctx = NULL) {
-  .Call(zstd_serialize_stream_file_, robj, file, level, num_threads, cctx)
+zstd_serialize_stream_file <- function(robj, file, ..., cctx = NULL) {
+  .Call(zstd_serialize_stream_file_, robj, file, cctx, list(...))
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
