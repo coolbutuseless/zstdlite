@@ -61,8 +61,37 @@ test_that("Raw compress roundtrip to file works", {
   # Multithreading
   dat <- sample(1e6)
   dat <- serialize(dat, NULL)
-  zstd_compress(dat, file = file, num_threads = 2)
-  expect_identical(dat, zstd_decompress(file))
+  zstd_compress(dat, file = file, num_threads = 2, use_file_streaming = FALSE)
+  dat2 <- zstd_decompress(file, use_file_streaming = FALSE)
+  expect_identical(dat, dat2)
+  
+  
+  # Multithreading
+  dat <- sample(1e6)
+  dat <- serialize(dat, NULL)
+  zstd_compress(dat, file = file, num_threads = 2, use_file_streaming = TRUE)
+  dat2 <- zstd_decompress(file, use_file_streaming = FALSE)
+  expect_identical(dat, dat2)
+  
+  
+  # Multithreading
+  dat <- sample(1e6)
+  dat <- serialize(dat, NULL)
+  zstd_compress(dat, file = file, num_threads = 2, use_file_streaming = TRUE)
+  dat2 <- zstd_decompress(file, use_file_streaming = TRUE)
+  expect_identical(dat, dat2)
+  
+  # Multithreading
+  dat <- sample(1e6)
+  dat <- serialize(dat, NULL)
+  zstd_compress(dat, file = file, num_threads = 2, use_file_streaming = FALSE)
+  dat2 <- zstd_decompress(file, use_file_streaming = TRUE)
+  expect_identical(dat, dat2)
+  
+  
+  
+  
+  
   
   
   

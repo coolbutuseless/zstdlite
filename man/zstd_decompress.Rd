@@ -4,7 +4,13 @@
 \alias{zstd_decompress}
 \title{Decompress raw bytes}
 \usage{
-zstd_decompress(src, type = "raw", ..., dctx = NULL)
+zstd_decompress(
+  src,
+  type = "raw",
+  ...,
+  dctx = NULL,
+  use_file_streaming = FALSE
+)
 }
 \arguments{
 \item{src}{Raw vector or filename containing a ZSTD compressed serialized representation of
@@ -16,6 +22,9 @@ Default: 'raw'}
 \item{...}{extra arguments passed to context initializer}
 
 \item{dctx}{ZSTD Decompression Context}
+
+\item{use_file_streaming}{use the streaming interface.  Can reduce memory pressure
+and make better use of mutlithreading.  default: FALSE}
 }
 \description{
 Decompress raw bytes

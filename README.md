@@ -118,9 +118,9 @@ res[,1:5]
     #> # A tibble: 3 × 5
     #>   expression                                    min   median `itr/sec` mem_alloc
     #>   <bch:expr>                               <bch:tm> <bch:tm>     <dbl> <bch:byt>
-    #> 1 zstd_serialize(dat, file = file)          14.69ms  14.89ms     66.9    17.27KB
-    #> 2 zstd_serialize(dat, file = file, level …   7.09ms   7.23ms    138.     17.27KB
-    #> 3 saveRDS(dat, file = file)                163.49ms 163.81ms      6.10    8.63KB
+    #> 1 zstd_serialize(dat, file = file)          14.74ms  15.26ms     65.5    17.27KB
+    #> 2 zstd_serialize(dat, file = file, level …   6.99ms   7.23ms    136.     17.27KB
+    #> 3 saveRDS(dat, file = file)                165.47ms 167.44ms      5.99    8.63KB
 
 <img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
 
@@ -200,14 +200,14 @@ manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
 lobstr::obj_size(manifesto)
 ```
 
-    #> 32.15 kB
+    #> 34.16 kB
 
 ``` r
 compressed <- zstd_compress(manifesto)
 lobstr::obj_size(compressed)
 ```
 
-    #> 9.96 kB
+    #> 10.56 kB
 
 ``` r
 identical(
@@ -314,8 +314,8 @@ dict <- zstd_train_dict_serialize(train_samples, size = 5000, optim = FALSE)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Setup Compression/Decompression contexts to use this dictionary
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cctx_nodict <- init_zstd_cctx()             # No dictionary. For comparison
-cctx_dict   <- init_zstd_cctx(dict = dict)
+cctx_nodict <- init_zstd_cctx(level = 3)             # No dictionary. For comparison
+cctx_dict   <- init_zstd_cctx(level = 3, dict = dict)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # When using the dictionary, what is the size of the compressed data compared
@@ -342,8 +342,8 @@ bench::mark(
     #> # A tibble: 2 × 5
     #>   expression      min   median `itr/sec` mem_alloc
     #>   <bch:expr> <bch:tm> <bch:tm>     <dbl> <bch:byt>
-    #> 1 No Dict     10.87ms   11.4ms      87.4      18MB
-    #> 2 Dict         7.78ms   8.07ms     124.       18MB
+    #> 1 No Dict     10.74ms  11.19ms      88.9      18MB
+    #> 2 Dict         7.73ms   8.12ms     122.       18MB
 
 ### Zstd “Single File” Libary
 

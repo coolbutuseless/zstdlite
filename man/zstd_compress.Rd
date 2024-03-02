@@ -4,7 +4,7 @@
 \alias{zstd_compress}
 \title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_compress(src, file = NULL, ..., cctx = NULL)
+zstd_compress(src, file = NULL, ..., cctx = NULL, use_file_streaming = FALSE)
 }
 \arguments{
 \item{src}{Source data to be compressed.  This may be a raw vector, or a
@@ -17,6 +17,9 @@ serialize the results to a raw vector}
 
 \item{cctx}{ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.
 Default: NULL will create a context on the fly}
+
+\item{use_file_streaming}{use the streaming interface.  Can reduce memory pressure
+and make better use of mutlithreading.  default: FALSE}
 }
 \value{
 raw vector of compressed data

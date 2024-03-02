@@ -79,7 +79,11 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_) {
   // Compress
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
   size_t num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, buf->data, src_size);
-  if (isNull(cctx_))  ZSTD_freeCCtx(cctx);
+  if (isNull(cctx_))  {
+    ZSTD_freeCCtx(cctx);
+  } else {
+    cctx_unset_stable_buffers(cctx);
+  }
   if (ZSTD_isError(num_compressed_bytes)) {
     error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }

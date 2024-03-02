@@ -46,24 +46,23 @@ and is included under its BSD license (compatible with the MIT license for this 
 ## What's in the box
 
 * `zstd_serialize()` and `zstd_unserialize()` 
-    * converting arbitrary R objects to/from a compressed representation
-    * Options:
-        * `level` compression level in range [-5, 22]. Default: 3
-        * `num_threads` number of threads to use. Default: 1
-        * `cctx`/`dctx` explicitly create compression and decompression 
-           contexts to control zstd
-* `zstd_compress()` and `zstd_decompress()` are for compressing/decompressing raw vectors -
+    * convert arbitrary R objects to/from a compressed representation
+    * this is equivalent to base R's `serialize()`/`unserialize()` with the addition
+      of `zstd` compression on the serialized data
+* `zstd_compress()` and `zstd_decompress()` are for compressing/decompressing strings and raw vectors -
   usually for interfacing with other systems
 * `init_zstd_cctx()` and `init_zstd_dctx()` initialize compression and 
-  decompression contexts, respectively.  This allows for explicit setting of
-  dictionaries to increase compression efficiency.
+  decompression contexts, respectively.  Options:
+    * `level` compression level in range [-5, 22]. Default: 3
+    * `num_threads` number of threads to use. Default: 1
+    * `include_checksum` Default: FALSE
+    * `cctx`/`dctx` explicitly create compression and decompression 
+       contexts to control zstd   
 * `zstd_train_dict_compress()` and `zstd_train_dict_serialize()` for creating
   dictionaries for compression and serialization respectively
 
 # ToDo before release
 
-* `zstd_compress()`/`zstd_decompress()` to file should use a streaming interface
-    * Might not be worth it for first release
 * Create compelling example for dictionary use.
 
 ## Installation

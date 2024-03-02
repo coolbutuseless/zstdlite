@@ -41,13 +41,15 @@ zstd_unserialize <- function(src, ..., dctx = NULL) {
 #' @inheritParams zstd_serialize
 #' @param src Source data to be compressed.  This may be a raw vector, or a
 #'        character string
+#' @param use_file_streaming use the streaming interface.  Can reduce memory pressure
+#'        and make better use of mutlithreading.  default: FALSE
 #'
 #' @return raw vector of compressed data
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_compress <- function(src, file = NULL, ..., cctx = NULL) {
-  .Call(zstd_compress_, src, file, cctx, list(...))
+zstd_compress <- function(src, file = NULL, ..., cctx = NULL, use_file_streaming = FALSE) {
+  .Call(zstd_compress_, src, file, cctx, list(...), use_file_streaming)
 }
 
 
@@ -56,13 +58,35 @@ zstd_compress <- function(src, file = NULL, ..., cctx = NULL) {
 #' Decompress raw bytes
 #' 
 #' @inheritParams zstd_serialize
+#' @inheritParams zstd_compress
 #' @param type should data be returned as a 'raw' vector? or as a 'string'? 
 #'        Default: 'raw'
 #' @param dctx ZSTD Decompression Context
 #' 
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_decompress <- function(src, type = 'raw', ..., dctx = NULL) {
-  .Call(zstd_decompress_, src, type, dctx, list(...))
+zstd_decompress <- function(src, type = 'raw', ..., dctx = NULL, use_file_streaming = FALSE) {
+  .Call(zstd_decompress_, src, type, dctx, list(...), use_file_streaming)
 } 
 
+if (FALSE) {
+  
+  zz <- as.raw(sample(255, 100000000, T))
+  lobstr::obj_size(zz)
+  cctx <- init_zstd_cctx(num_threads = 2)
+  bench::mark(
+    zstd_compress(zz, "working/z1", use_file_streaming = FALSE),
+    zstd_compress(zz, "working/z1", use_file_streaming = FALSE, num_threads = 2),
+    zstd_compress(zz, "working/z1", use_file_streaming = TRUE),
+    zstd_compress(zz, "working/z1", use_file_streaming = TRUE, num_threads = 2),
+    zstd_compress(zz, "working/z1", use_file_streaming = FALSE, cctx = cctx),
+    zstd_compress(zz, "working/z1", use_file_streaming = TRUE, cctx = cctx)
+  )
+  
+  
+  zz <- as.raw(sample(5, 10000000, T))
+  lobstr::obj_size(zz)
+  zstd_compress(zz, "working/z1")
+  yy <- zstd_decompress("working/z1", use_file_streaming = TRUE, num_threads = 2)
+  identical(yy, zz)
+}

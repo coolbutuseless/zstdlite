@@ -81,6 +81,24 @@ void cctx_set_stable_buffers(ZSTD_CCtx *cctx) {
 }
 
 
+
+void cctx_unset_stable_buffers(ZSTD_CCtx *cctx) {
+  
+  size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 0);
+  if (ZSTD_isError(res)) {
+    error("cctx_set_stable_buffers() could not unset 'ZSTD_c_stableInBuffer'");
+  }
+  
+  res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableOutBuffer, 0);
+  if (ZSTD_isError(res)) {
+    error("cctx_set_stable_buffers() could not unset 'ZSTD_c_stableOutBuffer'");
+  }
+}
+
+
+
+
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Controls whether the new and experimental "dedicated dictionary search
 // structure" can be used. This feature is still rough around the edges, be
@@ -207,6 +225,7 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
   }
   
   if (stable_buffers) {
+    // warning("Setting stable buffers\n");
     cctx_set_stable_buffers(cctx);
   }
   

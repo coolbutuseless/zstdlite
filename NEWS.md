@@ -1,4 +1,10 @@
 
+
+# zstdlite 0.2.4.9007 2024-03-02
+
+* Added optional streaming for `zstd_compress()`/`zstd_decompress()`
+    * Use option `use_file_streaming = TRUE` to enable
+
 # zstdlite 0.2.4.9007 2024-03-01
 
 * Tidy handling of options and initialisation of compression/decompression

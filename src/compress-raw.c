@@ -16,13 +16,19 @@
 #include "cctx.h"
 #include "dctx.h"
 #include "utils.h"
+#include "compress-file.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
+SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_file_streaming_) {
 
+  if (!isNull(file_) && asLogical(use_file_streaming_)) {
+    return zstd_compress_stream_file_(vec_, file_, cctx_, opts_);
+  }
+  
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack 'raw' or 'string' arguments
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,7 +74,10 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
   size_t num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, src, src_size);
   if (isNull(cctx_)) {
     ZSTD_freeCCtx(cctx);
+  } else {
+    cctx_unset_stable_buffers(cctx);
   }
+  
   if (ZSTD_isError(num_compressed_bytes)) {
     error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
@@ -114,8 +123,8 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_) {
-
+SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_, SEXP use_file_streaming_) {
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack data
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,7 +132,11 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_) {
   size_t src_size;
   
   if (TYPEOF(src_) == STRSXP) {
-    src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
+    if (asLogical(use_file_streaming_)) {
+      return zstd_decompress_stream_file_(src_, type_, dctx_, opts_);
+    } else {
+      src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
+    }
   } else if (TYPEOF(src_) == RAWSXP) {
     src = RAW(src_);
     src_size = (size_t)length(src_);
@@ -156,7 +169,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_) {
   } else {
     dst_ = PROTECT(allocVector(STRSXP, 1));
     dst = (unsigned char *)malloc(dstCapacity + 1);
-    dst[dstCapacity] = 0;
+    dst[dstCapacity] = 0; // Add "\0" terminator to string
   }  
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
