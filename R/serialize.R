@@ -12,14 +12,16 @@
 #'        Default: NULL will create a context on the fly
 #' @param dctx ZSTD Decompression Context created by \code{zstd_dctx()} or NULL.
 #'        Default: NULL will decompression without any context using default seetings.
+#' @param use_file_streaming use the streaming interface.  Can reduce memory pressure
+#'        and make better use of mutlithreading.  default: FALSE
 #' @param ... extra arguments passed to context initializer
 #'
 #' @return serialized representation compressed into a raw byte vector
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_serialize <- function(robj, file = NULL, ..., cctx = NULL) {
-  .Call(zstd_serialize_, robj, file, cctx, list(...))
+zstd_serialize <- function(robj, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE) {
+  .Call(zstd_serialize_, robj, file, cctx, list(...), use_file_streaming)
 }
 
 
@@ -28,8 +30,8 @@ zstd_serialize <- function(robj, file = NULL, ..., cctx = NULL) {
 #' @rdname zstd_serialize
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_unserialize <- function(src, ..., dctx = NULL) {
-  .Call(zstd_unserialize_, src, dctx, list(...))
+zstd_unserialize <- function(src, ..., dctx = NULL, use_file_streaming = FALSE) {
+  .Call(zstd_unserialize_, src, dctx, list(...), use_file_streaming)
 }
 
 
@@ -48,7 +50,7 @@ zstd_unserialize <- function(src, ..., dctx = NULL) {
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_compress <- function(src, file = NULL, ..., cctx = NULL, use_file_streaming = FALSE) {
+zstd_compress <- function(src, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE) {
   .Call(zstd_compress_, src, file, cctx, list(...), use_file_streaming)
 }
 
