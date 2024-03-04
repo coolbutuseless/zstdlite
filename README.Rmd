@@ -36,7 +36,7 @@ if (FALSE) {
 
 `zstdlite` provides access to the very fast (and highly configurable) 
  [zstd](https://github.com/facebook/zstd) library for serialization of
-R objects and compression/decompression of raw byte buffers.
+R objects and compression/decompression of raw byte buffers and strings.
 
 [zstd](https://github.com/facebook/zstd) code provided with this package is v1.5.5, 
 and is included under its BSD license (compatible with the MIT license for this package).
@@ -55,15 +55,10 @@ and is included under its BSD license (compatible with the MIT license for this 
   decompression contexts, respectively.  Options:
     * `level` compression level in range [-5, 22]. Default: 3
     * `num_threads` number of threads to use. Default: 1
-    * `include_checksum` Default: FALSE
-    * `cctx`/`dctx` explicitly create compression and decompression 
-       contexts to control zstd   
+    * `include_checksum`/`validate_checksum` Default: FALSE
+    * `dict` specify dictionary for aiding compression
 * `zstd_train_dict_compress()` and `zstd_train_dict_serialize()` for creating
   dictionaries for compression and serialization respectively
-
-# ToDo before release
-
-* Create compelling example for dictionary use.
 
 ## Installation
 
@@ -77,10 +72,10 @@ remotes::install_github('coolbutuseless/zstdlite')
 ## Basic Usage of `zstd_serialize()` and `zstd_unserialize()`
 
 `zstd_serialize()` and `zstd_unserialize()` are direct analogues of base R's
-`serialize()` and `unserialize()` if those base R functions supported `zstd` compression.
+`serialize()` and `unserialize()`.
 
 Because `zstd_serialize()` and `zstd_unserialize()` use R's serialization 
-mechanism, they will save/load (almost) any R object (Note: currently reference objects, 
+mechanism, they will save/load (almost) any R object, not just data.frames (Note: currently reference objects, 
 which should be handled with a `refhook` argument are not handled).
 
 ```{r}
@@ -137,7 +132,7 @@ ggplot(plot_df) +
 `zstd_serialize()`/`zstd_unserialize()` compress R objects that are really only 
 useful when working in R, or sharing data with other R users.
 
-In contrast, `zstd_compress()`/`zstd_decompress()` operate only on raw vectors
+In contrast, `zstd_compress()`/`zstd_decompress()` operate on raw vectors
 and strings, and are more suitable 
 for handling compressed data which is compatible with other systems and languages
 

@@ -10,3 +10,5 @@
 ^LICENSE\.md$
 ^doc$
 ^Meta$
+^src/libzstd.a$
+^srz/zstd/zstd.o$
