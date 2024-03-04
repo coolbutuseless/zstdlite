@@ -90,7 +90,8 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
 
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Write to file here if user did not request 'use_file_streaming'
+  // Write to file here if user specified a filename, 
+  // but did not request 'use_file_streaming'
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!isNull(file_)) {
     const char *filename = CHAR(STRING_ELT(file_, 0));
@@ -140,15 +141,18 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // if 'src_' is a filename, then handle it with the streaming interface
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  unsigned char *src;
+  size_t src_size;
   if (TYPEOF(src_) == STRSXP) {
-    return zstd_unserialize_stream_file_(src_, dctx_, opts_);
+    if (asLogical(use_file_streaming_)) {
+      return zstd_unserialize_stream_file_(src_, dctx_, opts_);
+    } else {
+      src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
+    }
+  } else {
+    src = RAW(src_);
+    src_size = (size_t)length(src_);
   }
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Determine pointer to raw buffer
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  unsigned char *src = (unsigned char *)RAW(src_);
-  size_t src_size = (size_t)length(src_);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Find the number of bytes of compressed data in the frame
@@ -217,6 +221,10 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (TYPEOF(src_) == STRSXP) {
+    // We decoded from a file buffer. Free the buffer
+    free(src);
+  }
   UNPROTECT(1);
   return res_;
 }
