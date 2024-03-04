@@ -26,7 +26,7 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // If 'file_' is set, then use streaming interface
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNull(file_)) {
+  if (!isNull(file_) && asLogical(use_file_streaming_)) {
     return zstd_serialize_stream_file_(robj_, file_, cctx_, opts_);
   }
   
@@ -63,13 +63,13 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   size_t dstCapacity  = ZSTD_compressBound(src_size);
   SEXP dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dstCapacity));
   char *dst = (char *)RAW(dst_);
-
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Compression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx_with_opts(opts_, 1);
+    cctx = init_cctx_with_opts(opts_, 1); // stable_buffers = 1
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     cctx_set_stable_buffers(cctx);
@@ -85,9 +85,31 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
     cctx_unset_stable_buffers(cctx);
   }
   if (ZSTD_isError(num_compressed_bytes)) {
-    error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
+    error("zstd_serialize_(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Write to file here if user did not request 'use_file_streaming'
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (!isNull(file_)) {
+    const char *filename = CHAR(STRING_ELT(file_, 0));
+    FILE *fp = fopen(filename, "wb");
+    if (fp == NULL) {
+      error("zstd_serialize_(): Couldn't open file for output '%s'", filename);
+    }
+    size_t num_written = fwrite(dst, 1, num_compressed_bytes, fp);
+    fclose(fp);
+    if (num_written != num_compressed_bytes) {
+      warning("zstd_serialize_(): File '%s' only wrote %zu/%zu bytes", filename, num_written, num_compressed_bytes);
+    }
+    UNPROTECT(1);
+    return R_NilValue;
+  }
+  
+  
+  
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Truncate the user-viewable size of the RAW vector
   // Requires: R_VERSION >= R_Version(3, 4, 0)

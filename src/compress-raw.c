@@ -83,8 +83,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_file
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Dump to file
-  // TODO: this could be a streaming write and avoid raw buffer allocation
+  // Dump to file - non-streaming 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!isNull(file_)) {
     const char *filename = CHAR(STRING_ELT(file_, 0));
