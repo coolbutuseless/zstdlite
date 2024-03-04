@@ -90,9 +90,9 @@ if (FALSE) {
   zstd_dict_id(dict)
    
   
-  cctx      <- init_zstd_cctx(             level = 3)
-  cctx_dict <- init_zstd_cctx(dict = dict, level = 3)
-  dctx_dict <- init_zstd_dctx(dict = dict)
+  cctx      <- zstd_cctx(             level = 3)
+  cctx_dict <- zstd_cctx(dict = dict, level = 3)
+  dctx_dict <- zstd_dctx(dict = dict)
 
   dat <- test_samples[[1]]
   zstd_serialize(dat, cctx = cctx)      |> length()

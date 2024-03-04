@@ -12,7 +12,7 @@
 #' @return ZSTD Compression Context
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-init_zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALSE, dict = NULL) {
+zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALSE, dict = NULL) {
   .Call(
     init_cctx_, 
     list(
@@ -37,7 +37,7 @@ init_zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALS
 #' @return ZSTD Decompression Context
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-init_zstd_dctx <- function(validate_checksum = TRUE, dict = NULL) {
+zstd_dctx <- function(validate_checksum = TRUE, dict = NULL) {
   .Call(
     init_dctx_, 
     list(
@@ -45,4 +45,30 @@ init_zstd_dctx <- function(validate_checksum = TRUE, dict = NULL) {
       dict              = dict
     )
   )
+}
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Get the configuration settings of a compression context 
+#' 
+#' @param cctx ZSTD compression context, as created by \code{zstd_cctx}
+#' 
+#' @return named list of configuration options
+#' @export
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zstd_cctx_settings <- function(cctx) {
+  .Call(get_cctx_settings_, cctx)
+}
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Get the configuration settings of a decompression context 
+#' 
+#' @param dctx ZSTD decompression context, as created by \code{zstd_dctx}
+#' 
+#' @return named list of configuration options
+#' @export
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zstd_dctx_settings <- function(dctx) {
+  .Call(get_dctx_settings_, dctx)
 }

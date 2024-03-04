@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "zstd.h"
+#include "zstd/zstd.h"
 #include "dctx.h"
 #include "utils.h"
 
@@ -218,3 +218,28 @@ SEXP init_dctx_(SEXP opts_) {
   return dctx_;
 }
 
+
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Get the context settings
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP get_dctx_settings_(SEXP dctx_) {
+  ZSTD_DCtx *dctx = external_ptr_to_zstd_dctx(dctx_);
+  
+  SEXP res_ = PROTECT(allocVector(VECSXP, 1));
+  
+  int validate_checksum;
+  ZSTD_DCtx_getParameter(dctx, ZSTD_d_forceIgnoreChecksum, &validate_checksum);
+  
+  SET_VECTOR_ELT(res_, 0, ScalarLogical(validate_checksum));
+  
+  SEXP nms_ = PROTECT(allocVector(STRSXP, 1));
+  SET_STRING_ELT(nms_, 0, mkChar("validate_checksum"));
+  
+  setAttrib(res_, R_NamesSymbol, nms_);
+  
+  UNPROTECT(2);
+  return res_;
+}

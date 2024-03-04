@@ -8,9 +8,9 @@
 #'        serialize the results to a raw vector
 #' @param src Raw vector or filename containing a ZSTD compressed serialized representation of
 #'        an R object
-#' @param cctx ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.  
+#' @param cctx ZSTD Compression Context created by \code{zstd_cctx()} or NULL.  
 #'        Default: NULL will create a context on the fly
-#' @param dctx ZSTD Decompression Context created by \code{init_zstd_dctx()} or NULL.
+#' @param dctx ZSTD Decompression Context created by \code{zstd_dctx()} or NULL.
 #'        Default: NULL will decompression without any context using default seetings.
 #' @param ... extra arguments passed to context initializer
 #'
@@ -73,7 +73,7 @@ if (FALSE) {
   
   zz <- as.raw(sample(255, 100000000, T))
   lobstr::obj_size(zz)
-  cctx <- init_zstd_cctx(num_threads = 2)
+  cctx <- zstd_cctx(num_threads = 2)
   bench::mark(
     zstd_compress(zz, "working/z1", use_file_streaming = FALSE),
     zstd_compress(zz, "working/z1", use_file_streaming = FALSE, num_threads = 2),

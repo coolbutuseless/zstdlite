@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "zstd.h"
+#include "zstd/zstd.h"
 #include "cctx.h"
 #include "utils.h"
 
@@ -336,3 +336,34 @@ SEXP init_cctx_(SEXP opts_) {
   return cctx_;
 }
 
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Get the context settings
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP get_cctx_settings_(SEXP cctx_) {
+  ZSTD_CCtx *cctx = external_ptr_to_zstd_cctx(cctx_);
+  
+  SEXP res_ = PROTECT(allocVector(VECSXP, 3));
+  
+  int level;
+  int num_threads;
+  int include_checksum;
+  
+  ZSTD_CCtx_getParameter(cctx, ZSTD_c_compressionLevel, &level);
+  ZSTD_CCtx_getParameter(cctx, ZSTD_c_nbWorkers, &num_threads);
+  ZSTD_CCtx_getParameter(cctx, ZSTD_c_checksumFlag, &include_checksum);
+  
+  SET_VECTOR_ELT(res_, 0, ScalarInteger(level));
+  SET_VECTOR_ELT(res_, 1, ScalarInteger(num_threads));
+  SET_VECTOR_ELT(res_, 2, ScalarLogical(include_checksum));
+  
+  SEXP nms_ = PROTECT(allocVector(STRSXP, 3));
+  SET_STRING_ELT(nms_, 0, mkChar("level"));
+  SET_STRING_ELT(nms_, 1, mkChar("num_threads"));
+  SET_STRING_ELT(nms_, 2, mkChar("include_checksum"));
+  
+  setAttrib(res_, R_NamesSymbol, nms_);
+  
+  UNPROTECT(2);
+  return res_;
+}

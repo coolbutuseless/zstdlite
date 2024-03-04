@@ -17,13 +17,13 @@ serialize the results to a raw vector}
 
 \item{...}{extra arguments passed to context initializer}
 
-\item{cctx}{ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.
+\item{cctx}{ZSTD Compression Context created by \code{zstd_cctx()} or NULL.
 Default: NULL will create a context on the fly}
 
 \item{src}{Raw vector or filename containing a ZSTD compressed serialized representation of
 an R object}
 
-\item{dctx}{ZSTD Decompression Context created by \code{init_zstd_dctx()} or NULL.
+\item{dctx}{ZSTD Decompression Context created by \code{zstd_dctx()} or NULL.
 Default: NULL will decompression without any context using default seetings.}
 }
 \value{

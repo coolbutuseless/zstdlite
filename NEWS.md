@@ -26,7 +26,7 @@
 # zstdlite 0.2.4.9004 2024-02-25
 
 * Refactor R interface to just:
-    * `init_zstd_cctx()`, `init_zstd_dctx()`
+    * `zstd_cctx()`, `zstd_dctx()`
     * `zstd_compress()`, `zstd_decompress()`
     * `zstd_serialize()`, `zstd_unserialize()`
         * Will use streaming if working from files
@@ -42,7 +42,7 @@
 
 * `ZSTD_dctx` can be created separately and passed as compression argument
     * Enables re-use of same context.
-    * `init_zstd_dctx()`
+    * `zstd_dctx()`
 * Framework in place to support dictionaries for compression/decompression.
     * Seems to use dictionary and not crash
     * Results don't seem correct though
@@ -53,7 +53,7 @@
 * Multithreaded compression
 * `ZSTD_cctx` can be created separately and passed as compression argument
     * Enables re-use of same context 
-    * See `init_zstd_cctx()`
+    * See `zstd_cctx()`
 
 
 # zstdlite 0.2.4.9000 2024-02-21

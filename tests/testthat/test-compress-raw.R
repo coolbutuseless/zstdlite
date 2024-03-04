@@ -27,8 +27,8 @@ test_that("Raw compress roundtrip works", {
   # separate context
   dat <- mtcars
   dat <- serialize(dat, NULL)
-  cctx <- init_zstd_cctx()
-  dctx <- init_zstd_dctx()
+  cctx <- zstd_cctx()
+  dctx <- zstd_dctx()
   expect_identical(dat, zstd_compress(dat, cctx = cctx) |> zstd_decompress(dctx = dctx))
 })
 
@@ -98,8 +98,8 @@ test_that("Raw compress roundtrip to file works", {
   # separate context
   dat <- mtcars
   dat <- serialize(dat, NULL)
-  cctx <- init_zstd_cctx()
-  dctx <- init_zstd_dctx()
+  cctx <- zstd_cctx()
+  dctx <- zstd_dctx()
   zstd_compress(dat, file = file, cctx = cctx)
   expect_identical(dat, zstd_decompress(file, dctx = dctx))
 })

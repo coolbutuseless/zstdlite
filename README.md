@@ -29,7 +29,7 @@ MIT license for this package).
 - `zstd_compress()` and `zstd_decompress()` are for
   compressing/decompressing raw vectors - usually for interfacing with
   other systems
-- `init_zstd_cctx()` and `init_zstd_dctx()` initialize compression and
+- `zstd_cctx()` and `zstd_dctx()` initialize compression and
   decompression contexts, respectively. This allows for explicit setting
   of dictionaries to increase compression efficiency.
 - `zstd_train_dict_compress()` and `zstd_train_dict_serialize()` for
@@ -314,8 +314,8 @@ dict <- zstd_train_dict_serialize(train_samples, size = 5000, optim = FALSE)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Setup Compression/Decompression contexts to use this dictionary
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cctx_nodict <- init_zstd_cctx(level = 3)             # No dictionary. For comparison
-cctx_dict   <- init_zstd_cctx(level = 3, dict = dict)
+cctx_nodict <- zstd_cctx(level = 3)             # No dictionary. For comparison
+cctx_dict   <- zstd_cctx(level = 3, dict = dict)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # When using the dictionary, what is the size of the compressed data compared

@@ -15,7 +15,7 @@ serialize the results to a raw vector}
 
 \item{...}{extra arguments passed to context initializer}
 
-\item{cctx}{ZSTD Compression Context created by \code{init_zstd_cctx()} or NULL.
+\item{cctx}{ZSTD Compression Context created by \code{zstd_cctx()} or NULL.
 Default: NULL will create a context on the fly}
 
 \item{use_file_streaming}{use the streaming interface.  Can reduce memory pressure

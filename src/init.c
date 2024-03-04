@@ -5,6 +5,9 @@
 extern SEXP init_cctx_(SEXP opts_);
 extern SEXP init_dctx_(SEXP opts_);
 
+extern SEXP get_cctx_settings_(SEXP cctx_);
+extern SEXP get_dctx_settings_(SEXP dctx_);
+
 extern SEXP zstd_compress_(SEXP src_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_file_streaming_);
 extern SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_, SEXP use_file_streaming_);
 
@@ -30,6 +33,9 @@ extern SEXP zstd_dict_id_(SEXP dict_);
 static const R_CallMethodDef CEntries[] = {
   {"init_cctx_"                   , (DL_FUNC) &init_cctx_                   , 1},
   {"init_dctx_"                   , (DL_FUNC) &init_dctx_                   , 1},
+  
+  {"get_cctx_settings_"           , (DL_FUNC) &get_cctx_settings_           , 1},
+  {"get_dctx_settings_"           , (DL_FUNC) &get_dctx_settings_           , 1},
   
   {"zstd_compress_"               , (DL_FUNC) &zstd_compress_               , 5},
   {"zstd_decompress_"             , (DL_FUNC) &zstd_decompress_             , 5},

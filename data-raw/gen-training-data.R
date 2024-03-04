@@ -40,11 +40,11 @@ dat <- mtcars
 dat <- sample(50)
 pryr::object_size(dat)
 
-cctx1 <- init_zstd_cctx()
-cctx2 <- init_zstd_cctx(dict = "./data-raw/vec.dict")
+cctx1 <- zstd_cctx()
+cctx2 <- zstd_cctx(dict = "./data-raw/vec.dict")
 
-cctx1a <- init_zstd_cctx(num_threads = 4)
-cctx2a <- init_zstd_cctx(num_threads = 4, dict = "./data-raw/vec.dict")
+cctx1a <- zstd_cctx(num_threads = 4)
+cctx2a <- zstd_cctx(num_threads = 4, dict = "./data-raw/vec.dict")
 
 library(qs)
 
