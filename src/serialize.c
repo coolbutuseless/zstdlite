@@ -21,12 +21,12 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a compressed raw vector
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_) {
+SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_file_streaming_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // If 'file_' is set, then use streaming interface
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNull(file_)) {
+  if (!isNull(file_) && asLogical(use_file_streaming_)) {
     return zstd_serialize_stream_file_(robj_, file_, cctx_, opts_);
   }
   
@@ -63,13 +63,13 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_) {
   size_t dstCapacity  = ZSTD_compressBound(src_size);
   SEXP dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dstCapacity));
   char *dst = (char *)RAW(dst_);
-
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Compression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx_with_opts(opts_, 1);
+    cctx = init_cctx_with_opts(opts_, 1); // stable_buffers = 1
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     cctx_set_stable_buffers(cctx);
@@ -85,9 +85,32 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_) {
     cctx_unset_stable_buffers(cctx);
   }
   if (ZSTD_isError(num_compressed_bytes)) {
-    error("zstd_compress(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
+    error("zstd_serialize_(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Write to file here if user specified a filename, 
+  // but did not request 'use_file_streaming'
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (!isNull(file_)) {
+    const char *filename = CHAR(STRING_ELT(file_, 0));
+    FILE *fp = fopen(filename, "wb");
+    if (fp == NULL) {
+      error("zstd_serialize_(): Couldn't open file for output '%s'", filename);
+    }
+    size_t num_written = fwrite(dst, 1, num_compressed_bytes, fp);
+    fclose(fp);
+    if (num_written != num_compressed_bytes) {
+      warning("zstd_serialize_(): File '%s' only wrote %zu/%zu bytes", filename, num_written, num_compressed_bytes);
+    }
+    UNPROTECT(1);
+    return R_NilValue;
+  }
+  
+  
+  
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Truncate the user-viewable size of the RAW vector
   // Requires: R_VERSION >= R_Version(3, 4, 0)
@@ -113,20 +136,23 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Unpack a raw vector to an R object
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_) {
+SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streaming_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // if 'src_' is a filename, then handle it with the streaming interface
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  unsigned char *src;
+  size_t src_size;
   if (TYPEOF(src_) == STRSXP) {
-    return zstd_unserialize_stream_file_(src_, dctx_, opts_);
+    if (asLogical(use_file_streaming_)) {
+      return zstd_unserialize_stream_file_(src_, dctx_, opts_);
+    } else {
+      src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
+    }
+  } else {
+    src = RAW(src_);
+    src_size = (size_t)length(src_);
   }
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Determine pointer to raw buffer
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  unsigned char *src = (unsigned char *)RAW(src_);
-  size_t src_size = (size_t)length(src_);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Find the number of bytes of compressed data in the frame
@@ -195,6 +221,10 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (TYPEOF(src_) == STRSXP) {
+    // We decoded from a file buffer. Free the buffer
+    free(src);
+  }
   UNPROTECT(1);
   return res_;
 }
