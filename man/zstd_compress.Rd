@@ -2,7 +2,7 @@
 % Please edit documentation in R/serialize.R
 \name{zstd_compress}
 \alias{zstd_compress}
-\title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
+\title{Compress raw vectors and character strings.}
 \usage{
 zstd_compress(src, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE)
 }
@@ -10,20 +10,25 @@ zstd_compress(src, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE)
 \item{src}{Source data to be compressed.  This may be a raw vector, or a
 character string}
 
-\item{...}{extra arguments passed to context initializer}
+\item{...}{extra arguments passed to \code{zstd_cctx()} or \code{zstd_dctx()}
+context initializers. 
+Note: These argument are only used when \code{cctx} or \code{dctx} is NULL}
 
 \item{file}{filename in which to serialize data. If NULL (the default), then 
 serialize the results to a raw vector}
 
 \item{cctx}{ZSTD Compression Context created by \code{zstd_cctx()} or NULL.
-Default: NULL will create a context on the fly}
+Default: NULL will create a default compression context on-the-fly}
 
-\item{use_file_streaming}{use the streaming interface.  Can reduce memory pressure
-and make better use of mutlithreading.  default: FALSE}
+\item{use_file_streaming}{Use the streaming interface when reading or writing
+to a file?  This may reduce memory allocations
+and make better use of mutlithreading.  Default: FALSE}
 }
 \value{
-raw vector of compressed data
+Raw vector of compressed data, or file created with compressed data
 }
 \description{
-Serialize arbitrary objects to a compressed stream of bytes using Zstandard
+This function is most appropriate when handling data from other systems e.g.
+data compressed with the \code{zstd} command-line, or other compression
+programs.
 }

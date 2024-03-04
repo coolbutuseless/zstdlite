@@ -1,0 +1,142 @@
+---
+title: "Dictionaries"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Dictionaries}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(zstdlite)
+library(bench)
+```
+
+
+## Dictionary-based compression
+
+Using a dictionary can be beneficial when compressing lots of small objects
+with similar structure or content.  
+
+Instead of the compressor starting from scratch for every new object, a *dictionary* can be trained and used such that there is some starting information common to all objects - it's like giving the compressor a bit of a head-start. 
+
+The following notes presented below are from `zstd` dictionary documentation:
+
+#### Why should I use a dictionary?
+
+Zstd can use dictionaries to improve compression ratio of small data.
+Traditionally small files don't compress well because there is very little
+repetition in a single sample, since it is small. But, if you are compressing
+many similar files, like a bunch of JSON records that share the same
+structure, you can train a dictionary on ahead of time on some samples of
+these files. Then, zstd can use the dictionary to find repetitions that are
+present across samples. This can vastly improve compression ratio.
+
+#### When is a dictionary useful?
+
+Dictionaries are useful when compressing many small files that are similar.
+The larger a file is, the less benefit a dictionary will have. Generally,
+we don't expect dictionary compression to be effective past 100KB. And the
+smaller a file is, the more we would expect the dictionary to help.
+
+#### How do I train a dictionary?
+
+Gather samples from your use case. These samples should be similar to each
+other. If you have several use cases, you could try to train one dictionary
+per use case.
+If the dictionary training function fails, that is likely because you
+either passed too few samples, or a dictionary would not be effective
+for your data. 
+
+#### How large should my dictionary be?
+
+A reasonable dictionary size, the `dictBufferCapacity`, is about 100KB.
+The zstd CLI defaults to a 110KB dictionary. You likely don't need a
+dictionary larger than that. But, most use cases can get away with a
+smaller dictionary. The advanced dictionary builders can automatically
+shrink the dictionary for you, and select the smallest size that doesn't
+hurt compression ratio too much. See the `shrinkDict` parameter.
+A smaller dictionary can save memory, and potentially speed up
+compression.
+
+#### How many samples should I provide to the dictionary builder?
+
+We generally recommend passing ~100x the size of the dictionary
+in samples. A few thousand should suffice. Having too few samples
+can hurt the dictionaries effectiveness. Having more samples will
+only improve the dictionaries effectiveness. But having too many
+samples can slow down the dictionary builder.
+
+#### How do I determine if a dictionary will be effective?
+
+Simply train a dictionary and try it out. 
+
+#### When should I retrain a dictionary?
+
+You should retrain a dictionary when its effectiveness drops. Dictionary
+effectiveness drops as the data you are compressing changes. Generally, we do
+expect dictionaries to "decay" over time, as your data changes, but the rate
+at which they decay depends on your use case. Internally, we regularly
+retrain dictionaries, and if the new dictionary performs significantly
+better than the old dictionary, we will ship the new dictionary.
+
+## Example
+
+The following shows that using a dictionary for this specific 
+example gives ~35% smaller files in ~75% of the time.
+
+```{r}
+set.seed(2024)
+countries <- rownames(LifeCycleSavings)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create 'test' and 'train' datasets
+# In this example consider the case of having a named vector of rankings of 
+# countries.  Each ranking will be compressed separately and stored (say in a database)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+train_samples <- lapply(
+  1:1000, 
+  \(x) setNames(sample(length(countries)), countries)
+)
+
+test_samples <- lapply(
+  1:1000, 
+  \(x) setNames(sample(length(countries)), countries)
+)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Create a dictionary
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+dict <- zstd_train_dict_serialize(train_samples, size = 5000, optim = FALSE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Setup Compression/Decompression contexts to use this dictionary
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cctx_nodict <- zstd_cctx(level = 3) # No dictionary. For comparison
+cctx_dict   <- zstd_cctx(level = 3, dict = dict)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# When using the dictionary, what is the size of the compressed data compared
+# to not using a dicionary here?
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+s1 <- lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_nodict)) |> lengths() |> sum()
+s2 <- lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_dict  )) |> lengths() |> sum()
+cat(round(s2/s1 * 100, 1), "%")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Simple benchmark to test speed when using dicionary.
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bench::mark(
+  "No Dict" = lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_nodict)),
+  "Dict"    = lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_dict  )),
+  check = FALSE
+)[, 1:5]
+```
+

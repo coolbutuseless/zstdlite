@@ -2,7 +2,7 @@
 % Please edit documentation in R/dictionaries.R
 \name{zstd_train_dict_compress}
 \alias{zstd_train_dict_compress}
-\title{Train a dictionary}
+\title{Train a dictionary for use with \code{zstd_compress()}}
 \usage{
 zstd_train_dict_compress(
   samples,
@@ -17,17 +17,18 @@ example of something to be compressed with \code{zstd_compress()}}
 
 \item{size}{Maximum size of dictionary in bytes. Default: 112640 (110 kB) 
 matches the default size set by the command line version of \code{zstd}.
-Actual dictionary size may be smaller than this if (1) there was not
+Actual dictionary created may be smaller than this if (1) there was not
 enough training data to make use of this size (2) \code{optim_shrink_allow}
 was set and a smaller dictionary was found to be almost as 
 useful.}
 
 \item{optim}{optimize the dictionary. Default FALSE.  If TRUE, then ZSTD
-will spend time optimizing the dictionary.}
+will spend time optimizing the dictionary.  This can be a very 
+length operation.}
 
 \item{optim_shrink_allow}{integer value representing a percentage.
 If non-zero, then a search will be carried out for dictionaries of a 
-smaller size which are up to optim_shrink_allow percent worse than
+smaller size which are up to \code{optim_shrink_allow} percent worse than
 the maximum sized dictionary.  Default: 0 means that no 
 shrinking will be done.}
 }
@@ -35,5 +36,6 @@ shrinking will be done.}
 raw vector containing a ZSTD dictionary
 }
 \description{
-Train a dictionary
+This function uses multiple samples representative of the expected data to 
+train a dictionary for use during compression.
 }

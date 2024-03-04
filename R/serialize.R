@@ -1,7 +1,7 @@
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Serialize arbitrary objects to a compressed stream of bytes using Zstandard
+#' Serialize arbitrary R objects to a compressed stream of bytes using Zstandard
 #'
 #' @param robj Any R object understood by \code{base::serialize()}
 #' @param file filename in which to serialize data. If NULL (the default), then 
@@ -9,12 +9,15 @@
 #' @param src Raw vector or filename containing a ZSTD compressed serialized representation of
 #'        an R object
 #' @param cctx ZSTD Compression Context created by \code{zstd_cctx()} or NULL.  
-#'        Default: NULL will create a context on the fly
+#'        Default: NULL will create a default compression context on-the-fly
 #' @param dctx ZSTD Decompression Context created by \code{zstd_dctx()} or NULL.
-#'        Default: NULL will decompression without any context using default seetings.
-#' @param use_file_streaming use the streaming interface.  Can reduce memory pressure
-#'        and make better use of mutlithreading.  default: FALSE
-#' @param ... extra arguments passed to context initializer
+#'        Default: NULL will create a default decompression context on-the-fly.
+#' @param use_file_streaming Use the streaming interface when reading or writing
+#'        to a file?  This may reduce memory allocations
+#'        and make better use of mutlithreading.  Default: FALSE
+#' @param ... extra arguments passed to \code{zstd_cctx()} or \code{zstd_dctx()}
+#'        context initializers. 
+#'        Note: These argument are only used when \code{cctx} or \code{dctx} is NULL
 #'
 #' @return serialized representation compressed into a raw byte vector
 #'
@@ -38,15 +41,17 @@ zstd_unserialize <- function(src, ..., dctx = NULL, use_file_streaming = FALSE) 
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Serialize arbitrary objects to a compressed stream of bytes using Zstandard
+#' Compress raw vectors and character strings.
+#' 
+#' This function is most appropriate when handling data from other systems e.g.
+#' data compressed with the \code{zstd} command-line, or other compression
+#' programs.
 #'
 #' @inheritParams zstd_serialize
 #' @param src Source data to be compressed.  This may be a raw vector, or a
 #'        character string
-#' @param use_file_streaming use the streaming interface.  Can reduce memory pressure
-#'        and make better use of mutlithreading.  default: FALSE
 #'
-#' @return raw vector of compressed data
+#' @return Raw vector of compressed data, or file created with compressed data
 #'
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,9 +66,8 @@ zstd_compress <- function(src, ..., file = NULL, cctx = NULL, use_file_streaming
 #' 
 #' @inheritParams zstd_serialize
 #' @inheritParams zstd_compress
-#' @param type should data be returned as a 'raw' vector? or as a 'string'? 
+#' @param type Should data be returned as a 'raw' vector or as a 'string'? 
 #'        Default: 'raw'
-#' @param dctx ZSTD Decompression Context
 #' 
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,24 +75,3 @@ zstd_decompress <- function(src, type = 'raw', ..., dctx = NULL, use_file_stream
   .Call(zstd_decompress_, src, type, dctx, list(...), use_file_streaming)
 } 
 
-if (FALSE) {
-  
-  zz <- as.raw(sample(255, 100000000, T))
-  lobstr::obj_size(zz)
-  cctx <- zstd_cctx(num_threads = 2)
-  bench::mark(
-    zstd_compress(zz, "working/z1", use_file_streaming = FALSE),
-    zstd_compress(zz, "working/z1", use_file_streaming = FALSE, num_threads = 2),
-    zstd_compress(zz, "working/z1", use_file_streaming = TRUE),
-    zstd_compress(zz, "working/z1", use_file_streaming = TRUE, num_threads = 2),
-    zstd_compress(zz, "working/z1", use_file_streaming = FALSE, cctx = cctx),
-    zstd_compress(zz, "working/z1", use_file_streaming = TRUE, cctx = cctx)
-  )
-  
-  
-  zz <- as.raw(sample(5, 10000000, T))
-  lobstr::obj_size(zz)
-  zstd_compress(zz, "working/z1")
-  yy <- zstd_decompress("working/z1", use_file_streaming = TRUE, num_threads = 2)
-  identical(yy, zz)
-}

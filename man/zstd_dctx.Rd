@@ -2,22 +2,30 @@
 % Please edit documentation in R/cctx.R
 \name{zstd_dctx}
 \alias{zstd_dctx}
-\title{Initialise a ZSTD compression context}
+\title{Initialise a ZSTD decompression context}
 \usage{
 zstd_dctx(validate_checksum = TRUE, dict = NULL)
 }
 \arguments{
-\item{validate_checksum}{Should the checksum of the data be validated if it is present? 
+\item{validate_checksum}{If a checksum is present on the comrpessed data, 
+should the checksum be validated? 
 Default: TRUE.  Set to \code{FALSE} to ignore the checksum, which 
-can lead to a minor speed improvement.
+may lead to a minor speed improvement.
 If no checksum is present in the compressed data, then this option has no 
 effect.}
 
-\item{dict}{Dictionary. Default: NULL (no dictionary)}
+\item{dict}{Dictionary. Default: NULL. Can either be a raw vector or a filename. 
+This dictionary can be created with \code{zstd_train_dict_compress()}
+, \code{zstd_train_dict_seriazlie()} or any other tool supporting
+\code{zstd} dictionary creation.  Note: compressed data created 
+with a dictionary \emph{must} be decompressed with the same dictionary.}
 }
 \value{
-ZSTD Decompression Context
+External pointer to a ZSTD Decompression Context which can be passed to
+        \code{zstd_unserialize()} and \code{zstd_decompress()}
 }
 \description{
-Initialise a ZSTD compression context
+Deompression contexts can be re-used, meaning that they don't have to be
+created each time a decompression function is called.  This can make 
+things faster when performing multiple decompression operations.
 }

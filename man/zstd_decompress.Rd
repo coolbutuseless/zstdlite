@@ -16,15 +16,19 @@ zstd_decompress(
 \item{src}{Raw vector or filename containing a ZSTD compressed serialized representation of
 an R object}
 
-\item{type}{should data be returned as a 'raw' vector? or as a 'string'? 
+\item{type}{Should data be returned as a 'raw' vector or as a 'string'? 
 Default: 'raw'}
 
-\item{...}{extra arguments passed to context initializer}
+\item{...}{extra arguments passed to \code{zstd_cctx()} or \code{zstd_dctx()}
+context initializers. 
+Note: These argument are only used when \code{cctx} or \code{dctx} is NULL}
 
-\item{dctx}{ZSTD Decompression Context}
+\item{dctx}{ZSTD Decompression Context created by \code{zstd_dctx()} or NULL.
+Default: NULL will create a default decompression context on-the-fly.}
 
-\item{use_file_streaming}{use the streaming interface.  Can reduce memory pressure
-and make better use of mutlithreading.  default: FALSE}
+\item{use_file_streaming}{Use the streaming interface when reading or writing
+to a file?  This may reduce memory allocations
+and make better use of mutlithreading.  Default: FALSE}
 }
 \description{
 Decompress raw bytes

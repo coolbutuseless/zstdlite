@@ -7,18 +7,36 @@
 zstd_cctx(level = 3L, num_threads = 1L, include_checksum = FALSE, dict = NULL)
 }
 \arguments{
-\item{level}{compression level. Default: 3}
+\item{level}{Compression level. Default: 3.  Valid range is [-5, 22] with 
+-5 representing the mode with least compression and 22
+representing the mode with most compression.  Note \code{level = 0} 
+corresponds to the \emph{default} level and is equivalent to
+\code{level = 3}}
 
-\item{num_threads}{number of compression threads. Default 1}
+\item{num_threads}{Number of compression threads. Default 1.  Using 
+more threads can result in faster compression, but the magnitude 
+of this speed-up depends on lots of factors e.g. cpu, drive speed,
+type of data compression level etc.}
 
-\item{include_checksum}{include a checksum with the compressed data. Default: FALSE}
+\item{include_checksum}{Include a checksum with the compressed data? 
+Default: FALSE.  If \code{TRUE} then a 32-bit hash of the original
+uncompressed data will be appended to the compressed data and 
+checked for validity during decompression.  See matching option 
+for decompression in  
+\code{zstd_dctx()} argument \code{validate_checksum}.}
 
-\item{dict}{dictionary. Can either be a raw vector or a filename.  The
-dict can be either a raw vector or a filename.}
+\item{dict}{Dictionary. Default: NULL. Can either be a raw vector or a filename. 
+This dictionary can be created with \code{zstd_train_dict_compress()}
+, \code{zstd_train_dict_seriazlie()} or any other tool supporting
+\code{zstd} dictionary creation.  Note: compressed data created 
+with a dictionary \emph{must} be decompressed with the same dictionary.}
 }
 \value{
-ZSTD Compression Context
+External pointer to a ZSTD Compression Context which can be passed to
+        \code{zstd_serialize()} and \code{zstd_compress()}
 }
 \description{
-Initialise a ZSTD compression context
+Compression contexts can be re-used, meaning that they don't have to be
+created each time a compression function is called.  This can make 
+things faster when performing multiple compression operations.
 }

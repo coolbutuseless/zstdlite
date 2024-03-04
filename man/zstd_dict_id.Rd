@@ -2,7 +2,7 @@
 % Please edit documentation in R/dictionaries.R
 \name{zstd_dict_id}
 \alias{zstd_dict_id}
-\title{Get the Dictionary ID of a dictionary or compressed data}
+\title{Get the Dictionary ID of a dictionary}
 \usage{
 zstd_dict_id(dict)
 }
@@ -15,5 +15,9 @@ Signed integer value representing the Dictionary ID. If data does not
         then a value of 0 is returned.
 }
 \description{
-Get the Dictionary ID of a dictionary or compressed data
+Dictionary IDs are generated automatically when a dictionary is created.
+When using a dictionary for compression, the same dictionary must be used
+during decompression.  ZSTD internall does this check for matching IDs
+when attempting to decompress.  This function exposes the dictionary ID
+to aid in handling and tracking dictionaries in R.
 }

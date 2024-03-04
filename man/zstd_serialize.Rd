@@ -3,7 +3,7 @@
 \name{zstd_serialize}
 \alias{zstd_serialize}
 \alias{zstd_unserialize}
-\title{Serialize arbitrary objects to a compressed stream of bytes using Zstandard}
+\title{Serialize arbitrary R objects to a compressed stream of bytes using Zstandard}
 \usage{
 zstd_serialize(robj, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE)
 
@@ -12,26 +12,29 @@ zstd_unserialize(src, ..., dctx = NULL, use_file_streaming = FALSE)
 \arguments{
 \item{robj}{Any R object understood by \code{base::serialize()}}
 
-\item{...}{extra arguments passed to context initializer}
+\item{...}{extra arguments passed to \code{zstd_cctx()} or \code{zstd_dctx()}
+context initializers. 
+Note: These argument are only used when \code{cctx} or \code{dctx} is NULL}
 
 \item{file}{filename in which to serialize data. If NULL (the default), then 
 serialize the results to a raw vector}
 
 \item{cctx}{ZSTD Compression Context created by \code{zstd_cctx()} or NULL.
-Default: NULL will create a context on the fly}
+Default: NULL will create a default compression context on-the-fly}
 
-\item{use_file_streaming}{use the streaming interface.  Can reduce memory pressure
-and make better use of mutlithreading.  default: FALSE}
+\item{use_file_streaming}{Use the streaming interface when reading or writing
+to a file?  This may reduce memory allocations
+and make better use of mutlithreading.  Default: FALSE}
 
 \item{src}{Raw vector or filename containing a ZSTD compressed serialized representation of
 an R object}
 
 \item{dctx}{ZSTD Decompression Context created by \code{zstd_dctx()} or NULL.
-Default: NULL will decompression without any context using default seetings.}
+Default: NULL will create a default decompression context on-the-fly.}
 }
 \value{
 serialized representation compressed into a raw byte vector
 }
 \description{
-Serialize arbitrary objects to a compressed stream of bytes using Zstandard
+Serialize arbitrary R objects to a compressed stream of bytes using Zstandard
 }
