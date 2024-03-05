@@ -216,6 +216,7 @@ cctx_meta_t *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
   // Defaults
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP dict_ = R_NilValue;
+  int level = 3;
   
   cctx_meta_t *cctx_meta = (cctx_meta_t *)calloc(1, sizeof(cctx_meta_t));
   
@@ -262,7 +263,7 @@ cctx_meta_t *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
     SEXP val_ = VECTOR_ELT(opts_, i);
     
     if (strcmp(opt_name, "level") == 0) {
-      int level = asInteger(val_);
+      level = asInteger(val_);
       level = level < -5 ? -5 : level;
       level = level > 22 ? 22 : level;
       size_t res = ZSTD_CCtx_setParameter(cctx_meta->cctx, ZSTD_c_compressionLevel, level);
@@ -297,18 +298,22 @@ cctx_meta_t *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
   // Handle dictionaries
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!isNull(dict_)) {
-    size_t status;
     if (TYPEOF(dict_) == RAWSXP) {
-      status = ZSTD_CCtx_loadDictionary(cctx_meta->cctx, RAW(dict_), (size_t)length(dict_));
+      // status = ZSTD_CCtx_loadDictionary(cctx_meta->cctx, RAW(dict_), (size_t)length(dict_));
+      cctx_meta->cdict = ZSTD_createCDict(RAW(dict_), (size_t)length(dict_), level);
     } else if (TYPEOF(dict_) == STRSXP) {
       const char *filename = CHAR(STRING_ELT(dict_, 0));
       size_t fsize;
       unsigned char *dict = read_file(filename, &fsize);
-      status = ZSTD_CCtx_loadDictionary(cctx_meta->cctx, dict, fsize);
+      // status = ZSTD_CCtx_loadDictionary(cctx_meta->cctx, dict, fsize);
+      cctx_meta->cdict = ZSTD_createCDict(dict, fsize, level);
       free(dict);
     } else {
       error("init_cctx(): 'dict' must be a raw vector or a filename");
     }
+    
+    size_t status = ZSTD_CCtx_refCDict(cctx_meta->cctx, cctx_meta->cdict);
+    
     if (ZSTD_isError(status)) {
       error("init_cctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
     }
