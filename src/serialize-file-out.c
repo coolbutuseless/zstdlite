@@ -125,7 +125,7 @@ void write_bytes_to_stream_file(R_outpstream_t stream, void *src, int length) {
     }
   }
   
-  memcpy(buf->uncompressed_data + buf->uncompressed_pos, src, length);
+  memcpy(buf->uncompressed_data + buf->uncompressed_pos, src, (size_t)length);
   buf->uncompressed_pos += (size_t)length;
 }
 

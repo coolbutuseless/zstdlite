@@ -43,7 +43,7 @@ zstd_unserialize <- function(src, ..., dctx = NULL, use_file_streaming = FALSE) 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Compress raw vectors and character strings.
 #' 
-#' This function is most appropriate when handling data from other systems e.g.
+#' This function is appropriate when handling data from other systems e.g.
 #' data compressed with the \code{zstd} command-line, or other compression
 #' programs.
 #'

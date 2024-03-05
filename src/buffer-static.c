@@ -64,7 +64,7 @@ void write_byte(R_outpstream_t stream, int c) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void write_bytes(R_outpstream_t stream, void *src, int length) {
   static_buffer_t *buf = (static_buffer_t *)stream->data;
-  memcpy(buf->data + buf->pos, src, length);
+  memcpy(buf->data + buf->pos, src, (size_t)length);
   buf->pos += (size_t)length;
 }
 
@@ -85,6 +85,6 @@ int read_byte(R_inpstream_t stream) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void read_bytes(R_inpstream_t stream, void *dst, int length) {
   static_buffer_t *buf = (static_buffer_t *)stream->data;
-  memcpy(dst, buf->data + buf->pos, length);
+  memcpy(dst, buf->data + buf->pos, (size_t)length);
   buf->pos += (size_t)length;
 }

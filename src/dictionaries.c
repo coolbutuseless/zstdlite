@@ -102,7 +102,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   }
   
   if (total_len < 100 * dictBufferCapacity) {
-    warning("zstd_train_dictionary() ZSTD documentation recommends training data size 100x dictionary size.\nOnly supplied with %.1fx", (double)total_len / dictBufferCapacity);
+    warning("zstd_train_dictionary() ZSTD documentation recommends training data size 100x dictionary size.\nOnly supplied with %.1fx", (double)total_len / (double)dictBufferCapacity);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

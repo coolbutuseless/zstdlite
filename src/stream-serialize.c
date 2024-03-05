@@ -103,7 +103,7 @@ void write_bytes_to_stream(R_outpstream_t stream, void *src, int length) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Copy the supplied bytes to the uncompressed_data buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  memcpy(buf->uncompressed_data + buf->uncompressed_pos, src, length);
+  memcpy(buf->uncompressed_data + buf->uncompressed_pos, src, (size_t)length);
   buf->uncompressed_pos += (size_t)length;
 }
 

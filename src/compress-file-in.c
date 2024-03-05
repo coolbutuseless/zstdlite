@@ -57,7 +57,7 @@ SEXP zstd_decompress_stream_file_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_)
   // Determine uncompressed file size
   // ZSTD_frameHeaderSize_max = 18
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  int bytes_read = fread(file_buf, 1, 18, fp);
+  size_t bytes_read = fread(file_buf, 1, 18, fp);
   fseek(fp, 0, SEEK_SET);  // same as rewind(f); 
   if (bytes_read != 18) {
     fclose(fp);

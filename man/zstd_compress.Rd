@@ -28,7 +28,7 @@ and make better use of mutlithreading.  Default: FALSE}
 Raw vector of compressed data, or file created with compressed data
 }
 \description{
-This function is most appropriate when handling data from other systems e.g.
+This function is appropriate when handling data from other systems e.g.
 data compressed with the \code{zstd} command-line, or other compression
 programs.
 }
