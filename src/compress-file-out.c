@@ -31,6 +31,7 @@
 SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
   
   static unsigned char zstd_raw[OUTSIZE];
+  cctx_meta_t *cctx_meta;
   ZSTD_CCtx *cctx;
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -53,7 +54,8 @@ SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) {
-    cctx = init_cctx_with_opts(opts_, 0);
+    cctx_meta = init_cctx_with_opts(opts_, 0);
+    cctx = cctx_meta->cctx;
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
   }
@@ -120,7 +122,11 @@ SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (isNull(cctx_)) ZSTD_freeCCtx(cctx);
+  if (isNull(cctx_)) {
+    ZSTD_freeCCtx(cctx_meta->cctx);
+    ZSTD_freeCDict(cctx_meta->cdict);
+    free(cctx_meta);
+  }
   fclose(fp);
   return R_NilValue;
 }

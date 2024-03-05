@@ -68,8 +68,10 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   // Compression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
+  cctx_meta_t *cctx_meta;
   if (isNull(cctx_)) {
-    cctx = init_cctx_with_opts(opts_, 1); // stable_buffers = 1
+    cctx_meta = init_cctx_with_opts(opts_, 1); // stable_buffers = 1
+    cctx = cctx_meta->cctx;
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     cctx_set_stable_buffers(cctx);
@@ -80,7 +82,9 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
   size_t num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, buf->data, src_size);
   if (isNull(cctx_))  {
-    ZSTD_freeCCtx(cctx);
+    ZSTD_freeCCtx(cctx_meta->cctx);
+    ZSTD_freeCDict(cctx_meta->cdict);
+    free(cctx_meta);
   } else {
     cctx_unset_stable_buffers(cctx);
   }

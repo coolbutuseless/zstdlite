@@ -15,7 +15,6 @@
 #include "utils.h"
 
 
-
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ZSTD_c_stableInBuffer
 // Experimental parameter.
@@ -170,9 +169,9 @@ void cctx_unset_stable_buffers(ZSTD_CCtx *cctx) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ZSTD_CCtx * external_ptr_to_zstd_cctx(SEXP cctx_) {
   if (TYPEOF(cctx_) == EXTPTRSXP) {
-    ZSTD_CCtx *cctx = (ZSTD_CCtx *)R_ExternalPtrAddr(cctx_);
-    if (cctx != NULL) {
-      return cctx;
+    cctx_meta_t *cctx_meta = (cctx_meta_t *)R_ExternalPtrAddr(cctx_);
+    if (cctx_meta != NULL && cctx_meta->cctx != NULL) {
+      return cctx_meta->cctx;
     }
   }
   
@@ -193,8 +192,8 @@ static void zstd_cctx_finalizer(SEXP cctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack the pointer 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ZSTD_CCtx *cctx = (ZSTD_CCtx *) R_ExternalPtrAddr(cctx_);
-  if (cctx == NULL) {
+  cctx_meta_t *cctx_meta = (cctx_meta_t *)R_ExternalPtrAddr(cctx_);
+  if (cctx_meta == NULL) {
     Rprintf("NULL ZSTD_CCtx in finalizer");
     return;
   }
@@ -202,7 +201,9 @@ static void zstd_cctx_finalizer(SEXP cctx_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Free ZSTD_Cctx pointer, Clear pointer to guard against re-use
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ZSTD_freeCCtx(cctx);
+  ZSTD_freeCCtx(cctx_meta->cctx);
+  ZSTD_freeCDict(cctx_meta->cdict);
+  free(cctx_meta);
   R_ClearExternalPtr(cctx_);
 }
 
@@ -210,30 +211,32 @@ static void zstd_cctx_finalizer(SEXP cctx_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
+cctx_meta_t *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Defaults
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP dict_ = R_NilValue;
   
+  cctx_meta_t *cctx_meta = (cctx_meta_t *)calloc(1, sizeof(cctx_meta_t));
+  
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Create an empty context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ZSTD_CCtx *cctx = ZSTD_createCCtx();
-  if (cctx == NULL) {
+  cctx_meta->cctx = ZSTD_createCCtx();
+  if (cctx_meta->cctx == NULL) {
     error("init_cctx(): Couldn't initialse memory for 'cctx'");
   }
-  
+
   if (stable_buffers) {
     // warning("Setting stable buffers\n");
-    cctx_set_stable_buffers(cctx);
+    cctx_set_stable_buffers(cctx_meta->cctx);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Short circuit if opts is empty
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (length(opts_) == 0) {
-    return cctx;
+    return cctx_meta;
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -262,14 +265,14 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
       int level = asInteger(val_);
       level = level < -5 ? -5 : level;
       level = level > 22 ? 22 : level;
-      size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, level);
+      size_t res = ZSTD_CCtx_setParameter(cctx_meta->cctx, ZSTD_c_compressionLevel, level);
       if (ZSTD_isError(res)) {
         error("init_cctx(): Bad compression level");  
       }
     } else if (strcmp(opt_name, "num_threads") == 0) {
       int num_threads = asInteger(val_);
       if (num_threads > 1) {
-        size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, num_threads);
+        size_t res = ZSTD_CCtx_setParameter(cctx_meta->cctx, ZSTD_c_nbWorkers, num_threads);
         if (ZSTD_isError(res)) {
           warning("init_cctx(): Included zstd library doesn't support multithreading. "
                      "Reverting to single-thread mode. \n");
@@ -277,7 +280,7 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
       }
     } else if (strcmp(opt_name, "include_checksum") == 0) {
       if (asLogical(val_)) {
-        size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_checksumFlag, 1);
+        size_t res = ZSTD_CCtx_setParameter(cctx_meta->cctx, ZSTD_c_checksumFlag, 1);
         if (ZSTD_isError(res)) {
           error("init_cctx(): Couldn't set checksum flag");  
         }
@@ -296,12 +299,12 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
   if (!isNull(dict_)) {
     size_t status;
     if (TYPEOF(dict_) == RAWSXP) {
-      status = ZSTD_CCtx_loadDictionary(cctx, RAW(dict_), (size_t)length(dict_));
+      status = ZSTD_CCtx_loadDictionary(cctx_meta->cctx, RAW(dict_), (size_t)length(dict_));
     } else if (TYPEOF(dict_) == STRSXP) {
       const char *filename = CHAR(STRING_ELT(dict_, 0));
       size_t fsize;
       unsigned char *dict = read_file(filename, &fsize);
-      status = ZSTD_CCtx_loadDictionary(cctx, dict, fsize);
+      status = ZSTD_CCtx_loadDictionary(cctx_meta->cctx, dict, fsize);
       free(dict);
     } else {
       error("init_cctx(): 'dict' must be a raw vector or a filename");
@@ -311,7 +314,7 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
     }
   }
   
-  return cctx;
+  return cctx_meta;
 }
 
 
@@ -322,12 +325,12 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP init_cctx_(SEXP opts_) {
   
-  ZSTD_CCtx *cctx = init_cctx_with_opts(opts_, 0);
+  cctx_meta_t *cctx_meta = init_cctx_with_opts(opts_, 0);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Wrap 'cctx' as an R external pointer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP cctx_ = PROTECT(R_MakeExternalPtr(cctx, R_NilValue, R_NilValue));
+  SEXP cctx_ = PROTECT(R_MakeExternalPtr(cctx_meta, R_NilValue, R_NilValue));
   R_RegisterCFinalizer(cctx_, zstd_cctx_finalizer);
   Rf_setAttrib(cctx_, R_ClassSymbol, Rf_mkString("ZSTD_CCtx"));
   

@@ -129,8 +129,10 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  cctx_meta_t *cctx_meta;
   if (isNull(cctx_)) {
-    buf.cctx = init_cctx_with_opts(opts_, 0);  // streaming does NOT have stable buffers.
+    cctx_meta = init_cctx_with_opts(opts_, 0);  // streaming does NOT have stable buffers.
+    buf.cctx = cctx_meta->cctx;
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
   }
@@ -215,7 +217,11 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (isNull(cctx_)) ZSTD_freeCCtx(buf.cctx);
+  if (isNull(cctx_)) {
+    ZSTD_freeCCtx(cctx_meta->cctx);
+    ZSTD_freeCDict(cctx_meta->cdict);
+    free(cctx_meta);
+  }
   UNPROTECT(1);
   return dst_;
 }
