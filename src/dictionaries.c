@@ -24,7 +24,7 @@ SEXP zstd_dict_id_(SEXP src_) {
   // ZSTDLIB_API unsigned ZSTD_getDictID_fromFrame(const void* src, size_t srcSize);
   void *src;
   size_t src_size;
-  
+  char buf[ZSTD_FRAMEHEADERSIZE_MAX];
   
   if (TYPEOF(src_) == RAWSXP) {
     src = (void *)RAW(src_);
@@ -35,7 +35,6 @@ SEXP zstd_dict_id_(SEXP src_) {
     if (fp == NULL) {
       error("zstd_dict_id_for_buffer_() couldn't open file '%s'", filename);
     }
-    char buf[ZSTD_FRAMEHEADERSIZE_MAX];
     size_t bytes_read = fread(buf, 1, sizeof(buf), fp);
     fclose(fp);
     src = buf;
