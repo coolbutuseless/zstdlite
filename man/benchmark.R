@@ -16,11 +16,11 @@ nr_of_rows <- 1e5
 df <- data.frame(
   Logical = sample(c(TRUE, FALSE, NA), prob = c(0.85, 0.1, 0.05), nr_of_rows, replace = TRUE),
   Integer = sample(nr_of_rows, replace = TRUE),
-  Real = sample(sample(nr_of_rows, 20) / 100, nr_of_rows, replace = TRUE),
-  Factor = as.factor(sample(labels(UScitiesD), nr_of_rows, replace = TRUE))
+  Real = sample(sample(nr_of_rows, 20) / 100, nr_of_rows, replace = TRUE) #,
+  # Factor = as.factor(sample(labels(UScitiesD), nr_of_rows, replace = TRUE))
 )
 
-
+orig_size <- serialize(df, NULL) |> length()
 file <- tempfile()
 
 
@@ -33,7 +33,7 @@ compress_rds <- function(df, file, compress) {
   
   data.frame(
     setting = as.character(compress),
-    size    = file.size(file),
+    size    = orig_size / file.size(file),
     time    = res$median |> as.numeric()
   )
 }
@@ -49,7 +49,7 @@ compress_fst <- function(df, file, compress) {
   
   data.frame(
     setting = as.character(compress),
-    size    = file.size(file),
+    size    = orig_size / file.size(file),
     time    = res$median |> as.numeric()
   )
 }
@@ -66,7 +66,7 @@ compress_zstdlite <- function(df, file, compress) {
   
   data.frame(
     setting = as.character(compress),
-    size    = file.size(file),
+    size    = orig_size / file.size(file),
     time    = res$median |> as.numeric()
   )
 }
@@ -86,7 +86,7 @@ compress_qs <- function(df, file, compress) {
   
   data.frame(
     setting = as.character(compress),
-    size    = file.size(file),
+    size    = orig_size / file.size(file),
     time    = res$median |> as.numeric()
   )
 }

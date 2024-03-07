@@ -285,21 +285,23 @@ test_samples <- lapply(
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Create a dictionary
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-dict <- zstd_train_dict_serialize(train_samples, size = 5000, optim = FALSE)
+dict <- zstd_train_dict_serialize(train_samples, size = 1200, optim = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Setup Compression/Decompression contexts to use this dictionary
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cctx_nodict <- zstd_cctx(level = 10)             # No dictionary. For comparison
-cctx_dict   <- zstd_cctx(level = 10, dict = dict)
+cctx_nodict <- zstd_cctx(level = 3)             # No dictionary. For comparison
+cctx_dict   <- zstd_cctx(level = 3, dict = dict)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # When using the dictionary, what is the size of the compressed data compared
 # to not using a dicionary here?
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+s0 <- lapply(test_samples, \(x)      serialize(x, NULL              )) |> lengths() |> sum()
 s1 <- lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_nodict)) |> lengths() |> sum()
 s2 <- lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_dict  )) |> lengths() |> sum()
-cat(round(s2/s1 * 100, 1), "%")
+cat("Compression ratio without dictinary:", round(s0/s1, 1), "\n")
+cat("Compression ratio with dictionary  :", round(s0/s2, 1), "\n")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Simple benchmark to test speed when using dicionary.
@@ -310,7 +312,6 @@ bench::mark(
   check = FALSE
 )[, 1:5]
 ```
-
 
 
 
