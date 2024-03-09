@@ -1,6 +1,6 @@
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Get the Dictionary ID of a dictionary
+#' Get the Dictionary ID of a dictionary or a vector compressed data.
 #' 
 #' Dictionary IDs are generated automatically when a dictionary is created.
 #' When using a dictionary for compression, the same dictionary must be used
@@ -8,7 +8,9 @@
 #' when attempting to decompress.  This function exposes the dictionary ID
 #' to aid in handling and tracking dictionaries in R.
 #' 
-#' @param dict raw vector or filename containing a dictionary
+#' @param dict raw vector or filename.  This object could contain either a 
+#'        zstd dictionary, or a compressed object.  If it is a compressed object,
+#'        then it will return the dictionary id which was used to compress it.
 #' @return Signed integer value representing the Dictionary ID. If data does not 
 #'         represent a dictionary, or data which was compressed with a dictionary,
 #'         then a value of 0 is returned.
@@ -18,6 +20,8 @@
 #' dict_file <- system.file("sample_dict.raw", package = "zstdlite", mustWork = TRUE)
 #' dict <- readBin(dict_file, raw(), file.size(dict_file))
 #' zstd_dict_id(dict)
+#' compressed_mtcars <- zstd_serialize(mtcars, dict = dict)
+#' zstd_dict_id(compressed_mtcars)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_dict_id <- function(dict) {
   .Call(zstd_dict_id_, dict)

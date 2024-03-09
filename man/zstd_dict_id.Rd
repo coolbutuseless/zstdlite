@@ -2,12 +2,14 @@
 % Please edit documentation in R/dictionaries.R
 \name{zstd_dict_id}
 \alias{zstd_dict_id}
-\title{Get the Dictionary ID of a dictionary}
+\title{Get the Dictionary ID of a dictionary or a vector compressed data.}
 \usage{
 zstd_dict_id(dict)
 }
 \arguments{
-\item{dict}{raw vector or filename containing a dictionary}
+\item{dict}{raw vector or filename.  This object could contain either a 
+zstd dictionary, or a compressed object.  If it is a compressed object,
+then it will return the dictionary id which was used to compress it.}
 }
 \value{
 Signed integer value representing the Dictionary ID. If data does not 
@@ -25,4 +27,6 @@ to aid in handling and tracking dictionaries in R.
 dict_file <- system.file("sample_dict.raw", package = "zstdlite", mustWork = TRUE)
 dict <- readBin(dict_file, raw(), file.size(dict_file))
 zstd_dict_id(dict)
+compressed_mtcars <- zstd_serialize(mtcars, dict = dict)
+zstd_dict_id(compressed_mtcars)
 }
