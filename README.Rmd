@@ -50,7 +50,7 @@ and is included under its BSD license (compatible with the MIT license for this 
     * this is equivalent to base R's `serialize()`/`unserialize()` with the addition
       of `zstd` compression on the serialized data
 * `zstd_compress()` and `zstd_decompress()` are for compressing/decompressing strings and raw vectors -
-  usually for interfacing with other systems
+  usually for interfacing with other systems e.g. data was already compressed on the command line.
 * `zstd_cctx()` and `zstd_dctx()` initialize compression and 
   decompression contexts, respectively.  Options:
     * `level` compression level in range [-5, 22]. Default: 3
@@ -58,7 +58,26 @@ and is included under its BSD license (compatible with the MIT license for this 
     * `include_checksum`/`validate_checksum` Default: FALSE
     * `dict` specify dictionary for aiding compression
 * `zstd_train_dict_compress()` and `zstd_train_dict_serialize()` for creating
-  dictionaries for compression and serialization respectively
+  dictionaries which can speed up compression/decompression
+
+
+## Comparison to `saveRDS()`/`readRDS()`
+
+The image below comparse `{zstdlite}` with `saveRDS()` for saving compressed
+representations of R objects.  (See `man/benchmarks.R` for code)
+
+Things to note in this comparison for the particular data used:
+
+* `zstd` compression can be much faster than the compression options 
+  offered by `saveRDS()`
+* `zstd` decompression speed is very fast and (mostly) independent of compression
+  settings
+* Compressing with `xz` and `bzip2` can both produce more compressed representations but
+  at the expense of slow compression/decompression.
+
+
+<img src="man/figures/comparison.png" width="100%" />
+
 
 ## Installation
 
@@ -75,65 +94,52 @@ remotes::install_github('coolbutuseless/zstdlite')
 `serialize()` and `unserialize()`.
 
 Because `zstd_serialize()` and `zstd_unserialize()` use R's serialization 
-mechanism, they will save/load (almost) any R object, not just data.frames (Note: currently reference objects, 
-which should be handled with a `refhook` argument are not handled).
+mechanism, they will save/load (almost) any R object e.g. data.frames, lists, environments, etc
 
 ```{r}
-lobstr::obj_size(mtcars)
+compressed_bytes <- zstd_serialize(head(mtcars))
+length(compressed_bytes) 
+head(compressed_bytes, 100)
 
-buf <- zstd_serialize(mtcars, level = 10, num_threads = 4)
-length(buf) # Number of compressed bytes
-
-# compression ratio
-length(buf)/as.numeric(lobstr::obj_size(mtcars))
-
-zstd_unserialize(buf) |> head()
+zstd_unserialize(compressed_bytes) 
 ```
 
 
-## Simple Benchmark
 
-```{r}
-dat <- iris[sample(nrow(iris), 100000, TRUE),]
-lobstr::obj_size(dat)
+## Using contexts to set compression arguments
 
-file <- tempfile()
-res <- bench::mark(
-  zstd_serialize(dat, file = file),
-  zstd_serialize(dat, file = file, level = -5, num_threads = 3),
-  saveRDS(dat, file = file)
-)
+The `zstd` algorithm uses *contexts* to control the compression and decompression.
+Every time data is compressed/decompressed a context is created.
 
-res[,1:5]
+*Contexts* can be created ahead-of-time, or created on-the-fly.  There can 
+be a some speed advantages to creating a *context* ahead of time and reusing
+it for multiple compression operations.
+
+The following ways of calling `zstd_serialize()` are equivalent:
+
+```{r eval=FALSE}
+zstd_serialize(data1, num_threads = 3, level = 20)
+zstd_serialize(data2, num_threads = 3, level = 20)
 ```
 
-```{r echo=FALSE}
-library(ggplot2)
-library(dplyr)
-plot_df <- res %>%
-  mutate(run = as.character(expression)) %>%
-  mutate(speedup = `itr/sec` / min(`itr/sec`))
-
-ggplot(plot_df) +
-  geom_col(aes(run, speedup)) + 
-  theme_bw() + 
-  labs(
-    title = "Saving `zstd` compressed R objects",
-    subtitle = "Bigger is better",
-    x = NULL,
-    y = "Factor speed increase over saveRDS()"
-  ) + 
-  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+```{r eval=FALSE}
+cctx <- zstd_cctx(num_threads = 3, level = 20)
+zstd_serialize(data1, cctx = cctx)
+zstd_serialize(data2, cctx = cctx)
 ```
 
 
-## Basic example `zstd_decompress()` 
+
+
+
+
+## Using `zstd_compression()`/`zstd_decompress()` for raw data and strings
 
 `zstd_serialize()`/`zstd_unserialize()` compress R objects that are really only 
 useful when working in R, or sharing data with other R users.
 
 In contrast, `zstd_compress()`/`zstd_decompress()` operate on raw vectors
-and strings, and are more suitable 
+and strings, and these functions are suitable 
 for handling compressed data which is compatible with other systems and languages
 
 Examples:
@@ -184,7 +190,7 @@ even just using the `zstd` command-line tool.
 manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
 lobstr::obj_size(manifesto)
 
-compressed <- zstd_compress(manifesto)
+compressed <- zstd_compress(manifesto, level = 22)
 lobstr::obj_size(compressed)
 
 identical(
@@ -194,90 +200,40 @@ identical(
 ```
 
 
+## Limitations
+
+* Reference objects which need to be serialized with a `refhook` approach are not handled.
 
 
 ## Dictionary-based compression
 
-The following notes are from `zstd` dictionary documentation:
+From the `zstd` documentation:
 
-#### Why should I use a dictionary?
+    Zstd can use dictionaries to improve compression ratio of small data.
+    Traditionally small files don't compress well because there is very little
+    repetition in a single sample, since it is small. But, if you are compressing
+    many similar files, like a bunch of JSON records that share the same
+    structure, you can train a dictionary on ahead of time on some samples of
+    these files. Then, zstd can use the dictionary to find repetitions that are
+    present across samples. This can vastly improve compression ratio.
 
-Zstd can use dictionaries to improve compression ratio of small data.
-Traditionally small files don't compress well because there is very little
-repetition in a single sample, since it is small. But, if you are compressing
-many similar files, like a bunch of JSON records that share the same
-structure, you can train a dictionary on ahead of time on some samples of
-these files. Then, zstd can use the dictionary to find repetitions that are
-present across samples. This can vastly improve compression ratio.
 
-#### When is a dictionary useful?
+### Dictionary Example
 
-Dictionaries are useful when compressing many small files that are similar.
-The larger a file is, the less benefit a dictionary will have. Generally,
-we don't expect dictionary compression to be effective past 100KB. And the
-smaller a file is, the more we would expect the dictionary to help.
 
-#### How do I train a dictionary?
-
-Gather samples from your use case. These samples should be similar to each
-other. If you have several use cases, you could try to train one dictionary
-per use case.
-If the dictionary training function fails, that is likely because you
-either passed too few samples, or a dictionary would not be effective
-for your data. 
-
-#### How large should my dictionary be?
-
-A reasonable dictionary size, the `dictBufferCapacity`, is about 100KB.
-The zstd CLI defaults to a 110KB dictionary. You likely don't need a
-dictionary larger than that. But, most use cases can get away with a
-smaller dictionary. The advanced dictionary builders can automatically
-shrink the dictionary for you, and select the smallest size that doesn't
-hurt compression ratio too much. See the `shrinkDict` parameter.
-A smaller dictionary can save memory, and potentially speed up
-compression.
-
-#### How many samples should I provide to the dictionary builder?
-
-We generally recommend passing ~100x the size of the dictionary
-in samples. A few thousand should suffice. Having too few samples
-can hurt the dictionaries effectiveness. Having more samples will
-only improve the dictionaries effectiveness. But having too many
-samples can slow down the dictionary builder.
-
-#### How do I determine if a dictionary will be effective?
-
-Simply train a dictionary and try it out. 
-
-#### When should I retrain a dictionary?
-
-You should retrain a dictionary when its effectiveness drops. Dictionary
-effectiveness drops as the data you are compressing changes. Generally, we do
-expect dictionaries to "decay" over time, as your data changes, but the rate
-at which they decay depends on your use case. Internally, we regularly
-retrain dictionaries, and if the new dictionary performs significantly
-better than the old dictionary, we will ship the new dictionary.
-
-## Example
 
 The following shows that using a dictionary for this specific 
-example gives ~35% smaller files in ~75% of the time.
+example doubles the compression ratio!
 
 ```{r}
 set.seed(2024)
 countries <- rownames(LifeCycleSavings)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Create 'test' and 'train' datasets
 # In this example consider the case of having a named vector of rankings of 
 # countries.  Each ranking will be compressed separately and stored (say in a database)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-train_samples <- lapply(
-  1:1000, 
-  \(x) setNames(sample(length(countries)), countries)
-)
-
-test_samples <- lapply(
+rankings <- lapply(
   1:1000, 
   \(x) setNames(sample(length(countries)), countries)
 )
@@ -285,56 +241,30 @@ test_samples <- lapply(
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Create a dictionary
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-dict <- zstd_train_dict_serialize(train_samples, size = 5000, optim = FALSE)
+dict <- zstd_train_dict_serialize(rankings, size = 1500, optim = TRUE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Setup Compression/Decompression contexts to use this dictionary
+# Setup Compression contexts to use this dictionary
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cctx_nodict <- zstd_cctx(level = 3)             # No dictionary. For comparison
-cctx_dict   <- zstd_cctx(level = 3, dict = dict)
+cctx_nodict <- zstd_cctx(level = 13) # No dictionary. For comparison
+cctx_dict   <- zstd_cctx(level = 13, dict = dict)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # When using the dictionary, what is the size of the compressed data compared
 # to not using a dicionary here?
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-s1 <- lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_nodict)) |> lengths() |> sum()
-s2 <- lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_dict  )) |> lengths() |> sum()
-cat(round(s2/s1 * 100, 1), "%")
+s1 <- lapply(rankings, \(x) zstd_serialize(x, cctx = cctx_nodict)) |> lengths() |> sum()
+s2 <- lapply(rankings, \(x) zstd_serialize(x, cctx = cctx_dict  )) |> lengths() |> sum()
+```
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Simple benchmark to test speed when using dicionary.
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-bench::mark(
-  "No Dict" = lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_nodict)),
-  "Dict"    = lapply(test_samples, \(x) zstd_serialize(x, cctx = cctx_dict  )),
-  check = FALSE
-)[, 1:5]
+```{r echo=FALSE}
+s0 <- lapply(rankings, \(x) serialize(x, NULL)) |> lengths() |> sum()
+cat("Compression ratio                :", round(s0/s1, 1), "\n")
+cat("Compression ratio with dictionary:", round(s0/s2, 1), "\n")
 ```
 
 
 
-
-
-### Zstd "Single File" Libary
-
-* To simplify the code within this package, it uses the 'single file library' version of zstd
-* To update this package when zstd is updated, create the single file library version
-    1. cd zstd/build/single_file_libs
-    2. sh create_single_file_library.sh
-    3. Wait.....
-    4. copy zstd/built/single_file_libs/zstd.c into zstdlite/src
-    5. copy zstd/lib/zstd.h into zstdlite/src
-
-## Related Software
-
-
-For a more general solution to fast serialization of R objects, see the 
-[fst](https://github.com/fstpackage/fst) or [qs](https://cran.r-project.org/package=qs) packages.
-
-* [fst](https://github.com/fstpackage/fst) for serialisation of data.frames only using
-  lz4 and zstd
-* [qs](https://cran.r-project.org/package=qs) for fast serialization of arbitrary R objects
-  with lz4 and zstd
 
 ## Acknowledgements
 
