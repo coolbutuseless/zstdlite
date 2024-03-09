@@ -1,6 +1,6 @@
 PKG_CPPFLAGS = -Izstd
 PKG_LIBS = ./libzstd.a
-#PKG_CFLAGS  += -Wconversion
+PKG_CFLAGS  += -Wconversion
 
 LIBZSTD = zstd/zstd.o
 
