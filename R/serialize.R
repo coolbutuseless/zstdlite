@@ -1,4 +1,18 @@
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Get version string of zstd C library
+#' 
+#' @return String containing version number of zstd C library
+#' @export
+#'
+#' @examples
+#' zstd_version()
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+zstd_version <- function() {
+  .Call(zstd_version_);
+}
+
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Serialize/Unserialize arbitrary R objects to a compressed stream of bytes using Zstandard
@@ -48,7 +62,6 @@ zstd_unserialize <- function(src, ..., dctx = NULL, use_file_streaming = FALSE) 
 
 
 
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Compress/Decompress raw vectors and character strings.
 #' 
@@ -88,4 +101,3 @@ zstd_compress <- function(src, ..., file = NULL, cctx = NULL, use_file_streaming
 zstd_decompress <- function(src, type = 'raw', ..., dctx = NULL, use_file_streaming = FALSE) {
   .Call(zstd_decompress_, src, type, dctx, list(...), use_file_streaming)
 } 
-

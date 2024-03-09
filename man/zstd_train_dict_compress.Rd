@@ -12,7 +12,8 @@ zstd_train_dict_compress(
 )
 }
 \arguments{
-\item{samples}{list of raw vectors.  Each raw vector should be a complete
+\item{samples}{list of raw vectors, or length-1 character vectors.
+Each raw vector or string, should be a complete
 example of something to be compressed with \code{zstd_compress()}}
 
 \item{size}{Maximum size of dictionary in bytes. Default: 112640 (110 kB) 
@@ -41,7 +42,7 @@ train a dictionary for use during compression.
 }
 \examples{
 # This example shows the mechanics of creating and training a dictionary but
-# is not a great example of when a dictionary might be useful
+# may not be a great example of when a dictionary might be useful
 cars <- rownames(mtcars)
 samples <- lapply(seq_len(1000), \(x) serialize(sample(cars), NULL))
 zstd_train_dict_compress(samples, size = 5000)

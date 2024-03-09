@@ -79,7 +79,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   // Unpack and sanity check args
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!isNewList(samples_)) {
-    error("zstd_train_dictionary(): samples must be provided as a list of raw vectors");
+    error("zstd_train_dictionary(): samples must be provided as a list of raw vectors or character strings");
   }
   
   size_t dictBufferCapacity = (size_t)asInteger(size_);
@@ -95,10 +95,17 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   size_t total_len = 0;
   for (uint32_t i = 0; i < nbSamples; i++) {
     SEXP elem_ = VECTOR_ELT(samples_, i);
-    if (TYPEOF(elem_) != RAWSXP || length(elem_) < 8) {
-      error("zstd_train_dictionary(): All samples must be raw vectors with length >= 8 bytes");
+    if (TYPEOF(elem_) == RAWSXP) {
+      if (length(elem_) < 8) {
+        error("zstd_train_dictionary(): When samples are raw vectors, all vector lengths must be >= 8 bytes");
+      }
+      total_len += (size_t)length(elem_);
+    } else if (TYPEOF(elem_) == STRSXP) {
+      if (length(elem_) != 1) {
+        warning("zstd_train_dictionary(): When samples are a list of character vectors, each vector must only contain a single string");
+      }
+      total_len += (size_t)strlen(CHAR(STRING_ELT(elem_, 0)));
     }
-    total_len += (size_t)length(elem_);
   }
   
   if (total_len < 100 * dictBufferCapacity) {
@@ -123,10 +130,18 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   size_t pos = 0;
   for (uint32_t i = 0; i < length(samples_); i++) {
     SEXP elem_ = VECTOR_ELT(samples_, i);
-    size_t len = (size_t)length(elem_);
-    samplesSizes[i] = len;
-    memcpy(samplesBuffer + pos, RAW(elem_), len);
-    pos += len;
+    if (TYPEOF(elem_) == RAWSXP) {
+      size_t len = (size_t)length(elem_);
+      samplesSizes[i] = len;
+      memcpy(samplesBuffer + pos, RAW(elem_), len);
+      pos += len;
+    } else if (TYPEOF(elem_) == STRSXP) {
+      const char *tmp = CHAR(STRING_ELT(elem_, 0));
+      size_t len = (size_t)strlen(tmp);
+      samplesSizes[i] = len;
+      memcpy(samplesBuffer + pos, (void *)tmp, len);
+      pos += len;
+    }
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

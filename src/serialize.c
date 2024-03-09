@@ -10,13 +10,23 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "zstd.h"
+#include "zstd/zstd.h"
 #include "buffer-static.h"
 #include "calc-size-robust.h"
 #include "cctx.h"
 #include "dctx.h"
 #include "utils.h"
 #include "serialize-file.h"
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ZSTDLIB_API const char* ZSTD_versionString(void)
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP zstd_version_(void) {
+  return mkString(ZSTD_versionString());
+}
+
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a compressed raw vector

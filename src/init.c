@@ -2,6 +2,8 @@
 #include <R.h>
 #include <Rinternals.h>
 
+extern SEXP zstd_version_(void);
+
 extern SEXP init_cctx_(SEXP opts_);
 extern SEXP init_dctx_(SEXP opts_);
 
@@ -31,6 +33,7 @@ extern SEXP zstd_dict_id_(SEXP dict_);
 // .Call   R_CallMethodDef
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 static const R_CallMethodDef CEntries[] = {
+  {"zstd_version_"                , (DL_FUNC) &zstd_version_                , 0},
   {"init_cctx_"                   , (DL_FUNC) &init_cctx_                   , 1},
   {"init_dctx_"                   , (DL_FUNC) &init_dctx_                   , 1},
   

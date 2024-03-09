@@ -7,7 +7,7 @@
 zstd_dict_id(dict)
 }
 \arguments{
-\item{dict}{raw vector or filename}
+\item{dict}{raw vector or filename containing a dictionary}
 }
 \value{
 Signed integer value representing the Dictionary ID. If data does not 
@@ -17,7 +17,7 @@ Signed integer value representing the Dictionary ID. If data does not
 \description{
 Dictionary IDs are generated automatically when a dictionary is created.
 When using a dictionary for compression, the same dictionary must be used
-during decompression.  ZSTD internall does this check for matching IDs
+during decompression.  ZSTD internally does this check for matching IDs
 when attempting to decompress.  This function exposes the dictionary ID
 to aid in handling and tracking dictionaries in R.
 }

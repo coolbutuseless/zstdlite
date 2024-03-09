@@ -40,7 +40,7 @@ Train a dictionary for use with \code{zstd_serialize()} and \code{zstd_unseriali
 }
 \examples{
 # This example shows the mechanics of creating and training a dictionary but
-# is not a great example of when a dictionary might be useful
+# may not be a great example of when a dictionary might be useful
 cars <- rownames(mtcars)
 samples <- lapply(seq_len(1000), \(x) sample(cars))
 zstd_train_dict_serialize(samples, size = 5000)

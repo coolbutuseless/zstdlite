@@ -1,4 +1,7 @@
 
+# zstdlite 0.2.4.9010 2024-03-09
+
+* Add `zstd_version()`
 
 # zstdlite 0.2.4.9009 2024-03-04
 

@@ -4,11 +4,11 @@
 #' 
 #' Dictionary IDs are generated automatically when a dictionary is created.
 #' When using a dictionary for compression, the same dictionary must be used
-#' during decompression.  ZSTD internall does this check for matching IDs
+#' during decompression.  ZSTD internally does this check for matching IDs
 #' when attempting to decompress.  This function exposes the dictionary ID
 #' to aid in handling and tracking dictionaries in R.
 #' 
-#' @param dict raw vector or filename
+#' @param dict raw vector or filename containing a dictionary
 #' @return Signed integer value representing the Dictionary ID. If data does not 
 #'         represent a dictionary, or data which was compressed with a dictionary,
 #'         then a value of 0 is returned.
@@ -30,7 +30,8 @@ zstd_dict_id <- function(dict) {
 #' This function requires multiple samples representative of the expected data to 
 #' train a dictionary for use during compression.
 #' 
-#' @param samples list of raw vectors.  Each raw vector should be a complete
+#' @param samples list of raw vectors, or length-1 character vectors.  
+#'        Each raw vector or string, should be a complete
 #'        example of something to be compressed with \code{zstd_compress()}
 #' @param size Maximum size of dictionary in bytes. Default: 112640 (110 kB) 
 #'        matches the default size set by the command line version of \code{zstd}.
@@ -52,7 +53,7 @@ zstd_dict_id <- function(dict) {
 #' 
 #' @examples
 #' # This example shows the mechanics of creating and training a dictionary but
-#' # is not a great example of when a dictionary might be useful
+#' # may not be a great example of when a dictionary might be useful
 #' cars <- rownames(mtcars)
 #' samples <- lapply(seq_len(1000), \(x) serialize(sample(cars), NULL))
 #' zstd_train_dict_compress(samples, size = 5000)
@@ -74,7 +75,7 @@ zstd_train_dict_compress <- function(samples, size = 100000, optim = FALSE, opti
 #' 
 #' @examples
 #' # This example shows the mechanics of creating and training a dictionary but
-#' # is not a great example of when a dictionary might be useful
+#' # may not be a great example of when a dictionary might be useful
 #' cars <- rownames(mtcars)
 #' samples <- lapply(seq_len(1000), \(x) sample(cars))
 #' zstd_train_dict_serialize(samples, size = 5000)
