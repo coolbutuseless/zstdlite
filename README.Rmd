@@ -63,7 +63,7 @@ and is included under its BSD license (compatible with the MIT license for this 
 
 ## Comparison to `saveRDS()`/`readRDS()`
 
-The image below comparse `{zstdlite}` with `saveRDS()` for saving compressed
+The image below compares `{zstdlite}` with `saveRDS()` for saving compressed
 representations of R objects.  (See `man/benchmarks.R` for code)
 
 Things to note in this comparison for the particular data used:
