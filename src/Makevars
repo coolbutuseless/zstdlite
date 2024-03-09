@@ -1,6 +1,6 @@
 PKG_CPPFLAGS = -Izstd
 PKG_LIBS = ./libzstd.a
-PKG_CFLAGS  += -Wconversion
+#PKG_CFLAGS  += -Wconversion
 
 LIBZSTD = zstd/zstd.o
 
@@ -23,5 +23,6 @@ clean:
 #     1. cd zstd/build/single_file_libs
 #     2. sh create_single_file_library.sh
 #     3. Wait.....
-#     4. copy zstd/built/single_file_libs/zstd.c into zstdlite/src
-#     5. copy zstd/lib/zstd.h into zstdlite/src
+#     4. copy zstd/built/single_file_libs/zstd.c into zstdlite/src/zstd/
+#     5. copy zstd/lib/zstd.h into zstdlite/src/zstd/
+#     6. copy zstd/lib/zdict.h into zstdlite/src/zstd/
