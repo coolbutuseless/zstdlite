@@ -3,7 +3,7 @@
 \name{zstd_serialize}
 \alias{zstd_serialize}
 \alias{zstd_unserialize}
-\title{Serialize arbitrary R objects to a compressed stream of bytes using Zstandard}
+\title{Serialize/Unserialize arbitrary R objects to a compressed stream of bytes using Zstandard}
 \usage{
 zstd_serialize(robj, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE)
 
@@ -33,8 +33,17 @@ an R object}
 Default: NULL will create a default decompression context on-the-fly.}
 }
 \value{
-serialized representation compressed into a raw byte vector
+Raw vector of compressed serialized data, or \code{NULL} if file 
+        created with compressed data
 }
 \description{
-Serialize arbitrary R objects to a compressed stream of bytes using Zstandard
+Serialize/Unserialize arbitrary R objects to a compressed stream of bytes using Zstandard
+}
+\examples{
+vec <- zstd_serialize(mtcars)
+zstd_unserialize(vec)
+
+tmp <- tempfile()
+zstd_serialize(mtcars, file = tmp)
+zstd_unserialize(tmp)
 }

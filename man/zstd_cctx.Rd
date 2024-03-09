@@ -40,3 +40,6 @@ Compression contexts can be re-used, meaning that they don't have to be
 created each time a compression function is called.  This can make 
 things faster when performing multiple compression operations.
 }
+\examples{
+cctx <- zstd_cctx(level = 4)
+}

@@ -7,11 +7,15 @@
 zstd_dctx_settings(dctx)
 }
 \arguments{
-\item{dctx}{ZSTD decompression context, as created by \code{zstd_dctx}}
+\item{dctx}{ZSTD decompression context, as created by \code{zstd_dctx()}}
 }
 \value{
 named list of configuration options
 }
 \description{
 Get the configuration settings of a decompression context
+}
+\examples{
+dctx <- zstd_dctx()
+zstd_dctx_settings(dctx)
 }

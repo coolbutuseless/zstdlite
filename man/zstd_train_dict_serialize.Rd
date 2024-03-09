@@ -2,7 +2,7 @@
 % Please edit documentation in R/dictionaries.R
 \name{zstd_train_dict_serialize}
 \alias{zstd_train_dict_serialize}
-\title{Train a dictionary}
+\title{Train a dictionary for use with \code{zstd_serialize()} and \code{zstd_unserialize()}}
 \usage{
 zstd_train_dict_serialize(
   samples,
@@ -36,5 +36,12 @@ shrinking will be done.}
 raw vector containing a ZSTD dictionary
 }
 \description{
-Train a dictionary
+Train a dictionary for use with \code{zstd_serialize()} and \code{zstd_unserialize()}
+}
+\examples{
+# This example shows the mechanics of creating and training a dictionary but
+# is not a great example of when a dictionary might be useful
+cars <- rownames(mtcars)
+samples <- lapply(seq_len(1000), \(x) sample(cars))
+zstd_train_dict_serialize(samples, size = 5000)
 }

@@ -2,9 +2,18 @@
 % Please edit documentation in R/serialize.R
 \name{zstd_compress}
 \alias{zstd_compress}
-\title{Compress raw vectors and character strings.}
+\alias{zstd_decompress}
+\title{Compress/Decompress raw vectors and character strings.}
 \usage{
 zstd_compress(src, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE)
+
+zstd_decompress(
+  src,
+  type = "raw",
+  ...,
+  dctx = NULL,
+  use_file_streaming = FALSE
+)
 }
 \arguments{
 \item{src}{Source data to be compressed.  This may be a raw vector, or a
@@ -23,12 +32,27 @@ Default: NULL will create a default compression context on-the-fly}
 \item{use_file_streaming}{Use the streaming interface when reading or writing
 to a file?  This may reduce memory allocations
 and make better use of mutlithreading.  Default: FALSE}
+
+\item{type}{Should data be returned as a 'raw' vector or as a 'string'? 
+Default: 'raw'}
+
+\item{dctx}{ZSTD Decompression Context created by \code{zstd_dctx()} or NULL.
+Default: NULL will create a default decompression context on-the-fly.}
 }
 \value{
-Raw vector of compressed data, or file created with compressed data
+Raw vector of compressed data, or \code{NULL} if file created with compressed data
 }
 \description{
 This function is appropriate when handling data from other systems e.g.
 data compressed with the \code{zstd} command-line, or other compression
 programs.
+}
+\examples{
+dat <- sample(as.raw(1:10), 1000, replace = TRUE)
+vec <- zstd_compress(dat)
+zstd_decompress(vec)
+
+tmp <- tempfile()
+zstd_compress(dat, file = tmp)
+zstd_decompress(tmp)
 }

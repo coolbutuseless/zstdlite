@@ -2,7 +2,7 @@
 % Please edit documentation in R/dictionaries.R
 \name{zstd_train_dict_compress}
 \alias{zstd_train_dict_compress}
-\title{Train a dictionary for use with \code{zstd_compress()}}
+\title{Train a dictionary for use with \code{zstd_compress()} and \code{zstd_decompress()}}
 \usage{
 zstd_train_dict_compress(
   samples,
@@ -36,6 +36,13 @@ shrinking will be done.}
 raw vector containing a ZSTD dictionary
 }
 \description{
-This function uses multiple samples representative of the expected data to 
+This function requires multiple samples representative of the expected data to 
 train a dictionary for use during compression.
+}
+\examples{
+# This example shows the mechanics of creating and training a dictionary but
+# is not a great example of when a dictionary might be useful
+cars <- rownames(mtcars)
+samples <- lapply(seq_len(1000), \(x) serialize(sample(cars), NULL))
+zstd_train_dict_compress(samples, size = 5000)
 }

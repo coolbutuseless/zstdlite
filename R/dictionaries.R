@@ -13,6 +13,11 @@
 #'         represent a dictionary, or data which was compressed with a dictionary,
 #'         then a value of 0 is returned.
 #' @export
+#' 
+#' @examples
+#' dict_file <- system.file("sample_dict.raw", package = "zstdlite", mustWork = TRUE)
+#' dict <- readBin(dict_file, raw(), file.size(dict_file))
+#' zstd_dict_id(dict)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_dict_id <- function(dict) {
   .Call(zstd_dict_id_, dict)
@@ -20,9 +25,9 @@ zstd_dict_id <- function(dict) {
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Train a dictionary for use with \code{zstd_compress()}
+#' Train a dictionary for use with \code{zstd_compress()} and \code{zstd_decompress()}
 #' 
-#' This function uses multiple samples representative of the expected data to 
+#' This function requires multiple samples representative of the expected data to 
 #' train a dictionary for use during compression.
 #' 
 #' @param samples list of raw vectors.  Each raw vector should be a complete
@@ -44,6 +49,13 @@ zstd_dict_id <- function(dict) {
 #'        
 #' @return raw vector containing a ZSTD dictionary
 #' @export
+#' 
+#' @examples
+#' # This example shows the mechanics of creating and training a dictionary but
+#' # is not a great example of when a dictionary might be useful
+#' cars <- rownames(mtcars)
+#' samples <- lapply(seq_len(1000), \(x) serialize(sample(cars), NULL))
+#' zstd_train_dict_compress(samples, size = 5000)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_train_dict_compress <- function(samples, size = 100000, optim = FALSE, optim_shrink_allow = 0) {
   .Call(zstd_train_dictionary_, samples, size, optim, optim_shrink_allow = 0)
@@ -51,7 +63,7 @@ zstd_train_dict_compress <- function(samples, size = 100000, optim = FALSE, opti
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#' Train a dictionary
+#' Train a dictionary for use with \code{zstd_serialize()} and \code{zstd_unserialize()}
 #' 
 #' @inheritParams zstd_train_dict_compress
 #' @param samples list of example R objects to train a dictionary to be 
@@ -59,6 +71,13 @@ zstd_train_dict_compress <- function(samples, size = 100000, optim = FALSE, opti
 #' 
 #' @return raw vector containing a ZSTD dictionary
 #' @export
+#' 
+#' @examples
+#' # This example shows the mechanics of creating and training a dictionary but
+#' # is not a great example of when a dictionary might be useful
+#' cars <- rownames(mtcars)
+#' samples <- lapply(seq_len(1000), \(x) sample(cars))
+#' zstd_train_dict_serialize(samples, size = 5000)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_train_dict_serialize <- function(samples, size = 100000, optim = FALSE, optim_shrink_allow = 0) {
   

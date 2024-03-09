@@ -31,6 +31,9 @@
 #' @return External pointer to a ZSTD Compression Context which can be passed to
 #'         \code{zstd_serialize()} and \code{zstd_compress()}
 #' @export
+#' 
+#' @examples
+#' cctx <- zstd_cctx(level = 4)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALSE, dict = NULL) {
   .Call(
@@ -47,7 +50,7 @@ zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALSE, di
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Initialise a ZSTD decompression context
 #' 
-#' Deompression contexts can be re-used, meaning that they don't have to be
+#' Decompression contexts can be re-used, meaning that they don't have to be
 #' created each time a decompression function is called.  This can make 
 #' things faster when performing multiple decompression operations.
 #' 
@@ -62,6 +65,9 @@ zstd_cctx <- function(level = 3L, num_threads = 1L, include_checksum = FALSE, di
 #' @return External pointer to a ZSTD Decompression Context which can be passed to
 #'         \code{zstd_unserialize()} and \code{zstd_decompress()}
 #' @export
+#' 
+#' @examples
+#' dctx <- zstd_dctx(validate_checksum = FALSE)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_dctx <- function(validate_checksum = TRUE, dict = NULL) {
   .Call(
@@ -77,10 +83,14 @@ zstd_dctx <- function(validate_checksum = TRUE, dict = NULL) {
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Get the configuration settings of a compression context 
 #' 
-#' @param cctx ZSTD compression context, as created by \code{zstd_cctx}
+#' @param cctx ZSTD compression context, as created by \code{zstd_cctx()}
 #' 
 #' @return named list of configuration options
 #' @export
+#' 
+#' @examples
+#' cctx <- zstd_cctx()
+#' zstd_cctx_settings(cctx)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_cctx_settings <- function(cctx) {
   .Call(get_cctx_settings_, cctx)
@@ -90,10 +100,14 @@ zstd_cctx_settings <- function(cctx) {
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #' Get the configuration settings of a decompression context 
 #' 
-#' @param dctx ZSTD decompression context, as created by \code{zstd_dctx}
+#' @param dctx ZSTD decompression context, as created by \code{zstd_dctx()}
 #' 
 #' @return named list of configuration options
 #' @export
+#' 
+#' @examples
+#' dctx <- zstd_dctx()
+#' zstd_dctx_settings(dctx)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_dctx_settings <- function(dctx) {
   .Call(get_dctx_settings_, dctx)

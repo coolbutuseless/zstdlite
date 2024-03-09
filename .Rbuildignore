@@ -11,4 +11,5 @@
 ^doc$
 ^Meta$
 ^src/libzstd.a$
-^srz/zstd/zstd.o$
+^src/zstd/zstd.o$
+^man/benchmark.R$

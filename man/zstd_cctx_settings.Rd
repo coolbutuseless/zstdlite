@@ -7,11 +7,15 @@
 zstd_cctx_settings(cctx)
 }
 \arguments{
-\item{cctx}{ZSTD compression context, as created by \code{zstd_cctx}}
+\item{cctx}{ZSTD compression context, as created by \code{zstd_cctx()}}
 }
 \value{
 named list of configuration options
 }
 \description{
 Get the configuration settings of a compression context
+}
+\examples{
+cctx <- zstd_cctx()
+zstd_cctx_settings(cctx)
 }

@@ -25,7 +25,10 @@ External pointer to a ZSTD Decompression Context which can be passed to
         \code{zstd_unserialize()} and \code{zstd_decompress()}
 }
 \description{
-Deompression contexts can be re-used, meaning that they don't have to be
+Decompression contexts can be re-used, meaning that they don't have to be
 created each time a decompression function is called.  This can make 
 things faster when performing multiple decompression operations.
+}
+\examples{
+dctx <- zstd_dctx(validate_checksum = FALSE)
 }

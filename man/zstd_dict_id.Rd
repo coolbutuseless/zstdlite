@@ -21,3 +21,8 @@ during decompression.  ZSTD internall does this check for matching IDs
 when attempting to decompress.  This function exposes the dictionary ID
 to aid in handling and tracking dictionaries in R.
 }
+\examples{
+dict_file <- system.file("sample_dict.raw", package = "zstdlite", mustWork = TRUE)
+dict <- readBin(dict_file, raw(), file.size(dict_file))
+zstd_dict_id(dict)
+}
