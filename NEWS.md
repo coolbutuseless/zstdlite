@@ -1,7 +1,11 @@
 
+# zstdlite 0.2.5  2024-03-09
+
 # zstdlite 0.2.4.9010 2024-03-09
 
 * Add `zstd_version()`
+* `zstd_train_dict_compress()` now accepts a list of strings (in addition to
+  a list of raw vectors)
 
 # zstdlite 0.2.4.9009 2024-03-04
 

@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
-Title: Compression and Object Serialization with 'Zstandard'
-Version: 0.2.4.9010
+Title: Fast Compression and Serialization with 'Zstandard' Algorithm
+Version: 0.2.5
 Authors@R: c(
     person("Mike", "Cheng", role = c("aut", "cre", 'cph'), 
     email = "mikefc@coolbutuseless.com"),
@@ -11,10 +11,13 @@ Authors@R: c(
            comment = "Author of the embedded zstandard library")
     )
 Maintainer: Mike Cheng <mikefc@coolbutuseless.com>
-Description: Compression with 'Zstandard'.  Handles arbitrary R objects 
-    via serialization, and 
-    compression of raw bytes and strings for compatibility with 
-    systems.
+Description: Fast, compressed serialization of R objects using the 'Zstandard' algorithm.
+    R objects can be compressed and decompressed quickly using the standard 
+    serialization mechanism in R.   Raw byte vectors
+    and strings are also handled directly for compatibility with compressed data created
+    by other systems and programs supporting 'Zstandard' compression.   
+    Dictionaries are supported for more effective compression of small data, 
+    and functions are provided for training these dictionaries.
 URL: https://github.com/coolbutuseless/zstdlite
 BugReports: https://github.com/coolbutuseless/zstdlite/issues
 License: MIT + file LICENSE
