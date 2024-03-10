@@ -1,5 +1,12 @@
 
+# zstdlite 0.2.6  2024-03-10
+
+* Fixes for CRAN
+    * Added explicit notice of copyright by Facebook
+
 # zstdlite 0.2.5  2024-03-09
+
+* Release to CRAN
 
 # zstdlite 0.2.4.9010 2024-03-09
 

@@ -1,0 +1,6 @@
+Zstandard C library
+-------------------
+
+The Zstandard library is Copyright (c) Meta Platforms, Inc. and affiliates. All rights reserved.
+
+See 'inst/LICENSE-zstd' for LICENSE for 'Zstandard'
