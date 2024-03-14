@@ -1,11 +1,11 @@
 Package: zstdlite
 Type: Package
 Title: Fast Compression and Serialization with 'Zstandard' Algorithm
-Version: 0.2.6
+Version: 0.2.7
 Authors@R: c(
     person("Mike", "Cheng", role = c("aut", "cre", 'cph'), email = "mikefc@coolbutuseless.com"),
-    person("Yann", "Collet", role = c("ctb", "cph"), comment = "Author of the embedded zstandard library"),
-    person("Meta Platforms, Inc. and affiliates.", role = "cph", comment = "Facebook is the copyright holder of the bundled zstd library")
+    person("Yann", "Collet", role = c("aut"), comment = "Author of the embedded Zstandard library"),
+    person("Meta Platforms, Inc. and affiliates.", role = "cph", comment = "Facebook is the copyright holder of the bundled Zstandard library")
     )
 Maintainer: Mike Cheng <mikefc@coolbutuseless.com>
 Description: Fast, compressed serialization of R objects using the 'Zstandard' algorithm.
@@ -15,14 +15,14 @@ Description: Fast, compressed serialization of R objects using the 'Zstandard' a
     by other systems and programs supporting 'Zstandard' compression.   
     Dictionaries are supported for more effective compression of small data, 
     and functions are provided for training these dictionaries.
-    This implementation is a wrapper around the 'Zstandard' 'C' library which 
-    is available from <https://github.com/facebook/zstd>.
+    This implementation provides an R interface to advanced features of 
+    the 'Zstandard' 'C' library (available from <https://github.com/facebook/zstd>).
 URL: https://github.com/coolbutuseless/zstdlite
 BugReports: https://github.com/coolbutuseless/zstdlite/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.1
-Copyright: This package includes code from the 'zstd' library owned by Meta Platforms, Inc. and affiliates. 
+Copyright: This package includes code from the 'Zstandard' library owned by Meta Platforms, Inc. and affiliates. 
     and created by Yann Collet.  See file 'inst/COPYRIGHTS' for details.
 Suggests: 
     knitr,

@@ -13,3 +13,4 @@
 ^src/libzstd.a$
 ^src/zstd/zstd.o$
 ^man/benchmark.R$
+^cran-comments\.md$
