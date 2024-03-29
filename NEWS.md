@@ -1,4 +1,8 @@
 
+# zstdlite 0.2.8  2024-03-29
+
+* Update to zstd library v1.5.6
+
 # zstdlite 0.2.7  2024-03-14
 
 * Fixes for CRAN

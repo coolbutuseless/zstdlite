@@ -18,9 +18,6 @@ extern "C" {
 /*======  Dependencies  ======*/
 #include <stddef.h>  /* size_t */
 
-#ifndef ZDICT_STATIC_LINKING_ONLY
-#  define ZDICT_STATIC_LINKING_ONLY
-#endif
 
 /* =====   ZDICTLIB_API : control library symbols visibility   ===== */
 #ifndef ZDICTLIB_VISIBLE

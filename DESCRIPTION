@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
 Title: Fast Compression and Serialization with 'Zstandard' Algorithm
-Version: 0.2.7
+Version: 0.2.8
 Authors@R: c(
     person("Mike", "Cheng", role = c("aut", "cre", 'cph'), email = "mikefc@coolbutuseless.com"),
     person("Yann", "Collet", role = c("aut"), comment = "Author of the embedded Zstandard library"),

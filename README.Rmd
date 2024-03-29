@@ -38,7 +38,7 @@ if (FALSE) {
  [zstd](https://github.com/facebook/zstd) library for serialization of
 R objects and compression/decompression of raw byte buffers and strings.
 
-[zstd](https://github.com/facebook/zstd) code provided with this package is v1.5.5, 
+[zstd](https://github.com/facebook/zstd) code provided with this package is v1.5.6, 
 and is included under its BSD license (compatible with the MIT license for this package).
 
 
