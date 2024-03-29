@@ -14,7 +14,7 @@
 objects and compression/decompression of raw byte buffers and strings.
 
 [zstd](https://github.com/facebook/zstd) code provided with this package
-is v1.5.5, and is included under its BSD license (compatible with the
+is v1.5.6, and is included under its BSD license (compatible with the
 MIT license for this package).
 
 ## What’s in the box
@@ -38,7 +38,7 @@ MIT license for this package).
 
 ## Comparison to `saveRDS()`/`readRDS()`
 
-The image below comparse `{zstdlite}` with `saveRDS()` for saving
+The image below compares `{zstdlite}` with `saveRDS()` for saving
 compressed representations of R objects. (See `man/benchmarks.R` for
 code)
 
@@ -49,7 +49,7 @@ Things to note in this comparison for the particular data used:
 - `zstd` decompression speed is very fast and (mostly) independent of
   compression settings
 - Compressing with `xz` and `bzip2` can both produce more compressed
-  representations.
+  representations but at the expense of slow compression/decompression.
 
 <img src="man/figures/comparison.png" width="100%" />
 
@@ -77,16 +77,16 @@ compressed_bytes <- zstd_serialize(head(mtcars))
 length(compressed_bytes) 
 ```
 
-    #> [1] 481
+    #> [1] 482
 
 ``` r
 head(compressed_bytes, 100)
 ```
 
-    #>   [1] 28 b5 2f fd 60 e8 02 bd 0e 00 86 d3 4b 41 20 69 6c 3a 40 0e a9 4b c6 b0 85
-    #>  [26] 4c 23 a0 52 87 46 43 0d 7e 8b a1 84 b8 9e f5 89 68 5d 6c 22 8a 6a d1 25 dc
-    #>  [51] d4 ab ff ab a2 21 b3 29 26 2d ed a7 a2 80 72 a8 67 29 2f ce 39 1d a7 af 11
-    #>  [76] d8 90 9f 02 38 00 41 00 35 00 22 1e b9 48 bb 72 a1 76 24 5a ac e5 b3 30 e7
+    #>   [1] 28 b5 2f fd 60 e8 02 c5 0e 00 86 13 4c 41 30 67 6c 3a 00 f1 70 71 26 7f 4c
+    #>  [26] 13 ec 49 07 75 e9 64 d9 57 69 c7 18 a8 12 f8 c6 20 5d 6c 22 00 d5 a2 4b c8
+    #>  [51] ac df c3 99 67 c3 c5 5c 31 c3 43 4a 22 40 1c 68 85 23 ac c7 d1 61 7e 4d 83
+    #>  [76] c0 82 7e 0a 38 00 42 00 35 00 24 2e c1 48 db 82 a1 b6 24 62 2c e6 c3 b0 a7
 
 ``` r
 zstd_unserialize(compressed_bytes) 
@@ -199,14 +199,14 @@ manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
 lobstr::obj_size(manifesto)
 ```
 
-    #> 34.61 kB
+    #> 37.49 kB
 
 ``` r
 compressed <- zstd_compress(manifesto, level = 22)
 lobstr::obj_size(compressed)
 ```
 
-    #> 9.69 kB
+    #> 10.46 kB
 
 ``` r
 identical(
@@ -273,7 +273,7 @@ s2 <- lapply(rankings, \(x) zstd_serialize(x, cctx = cctx_dict  )) |> lengths() 
 
     #> Compression ratio                : 1.9
 
-    #> Compression ratio with dictionary: 4.1
+    #> Compression ratio with dictionary: 4
 
 ## Acknowledgements
 
