@@ -18,7 +18,7 @@ zstd_version <- function() {
 #' Serialize/Unserialize arbitrary R objects to a compressed stream of bytes using Zstandard
 #'
 #' @param robj Any R object understood by \code{base::serialize()}
-#' @param file filename in which to serialize data. If NULL (the default), then 
+#' @param dst filename in which to serialize data. If NULL (the default), then 
 #'        serialize the results to a raw vector
 #' @param src Raw vector or filename containing a ZSTD compressed serialized representation of
 #'        an R object
@@ -39,15 +39,30 @@ zstd_version <- function() {
 #' @export
 #' 
 #' @examples
+#' # Raw vector
 #' vec <- zstd_serialize(mtcars)
-#' zstd_unserialize(vec)
+#' zstd_unserialize(src = vec)
 #' 
+#' # file
 #' tmp <- tempfile()
-#' zstd_serialize(mtcars, file = tmp)
-#' zstd_unserialize(tmp)
+#' zstd_serialize(mtcars, dst = tmp)
+#' zstd_unserialize(src = tmp)
+#' 
+#' # connection
+#' tmp <- tempfile()
+#' zstd_serialize(mtcars, dst = file(tmp))
+#' zstd_unserialize(src = file(tmp))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_serialize <- function(robj, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE) {
-  .Call(zstd_serialize_, robj, file, cctx, list(...), use_file_streaming)
+zstd_serialize <- function(robj, ..., dst = NULL, cctx = NULL, use_file_streaming = FALSE) {
+  if (!inherits(dst, 'connection')) {
+    .Call(zstd_serialize_, robj, dst, cctx, list(...), use_file_streaming)
+  } else {
+    if(!isOpen(dst)){
+      on.exit(close(dst)) 
+      open(dst, "wb")
+    }
+    .Call(zstd_serialize_conn_, robj, dst, cctx, list(...))
+  }
 }
 
 
@@ -57,7 +72,15 @@ zstd_serialize <- function(robj, ..., file = NULL, cctx = NULL, use_file_streami
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_unserialize <- function(src, ..., dctx = NULL, use_file_streaming = FALSE) {
-  .Call(zstd_unserialize_, src, dctx, list(...), use_file_streaming)
+  if (!inherits(src, 'connection')) {
+    .Call(zstd_unserialize_, src, dctx, list(...), use_file_streaming)
+  } else {
+    if(!isOpen(src)){
+      on.exit(close(src)) 
+      open(src, "rb")
+    }
+    .Call(zstd_unserialize_conn_, src, dctx, list(...))
+  }
 }
 
 
@@ -70,7 +93,14 @@ zstd_unserialize <- function(src, ..., dctx = NULL, use_file_streaming = FALSE) 
 #' programs.
 #'
 #' @inheritParams zstd_serialize
-#' @param src Source data to be compressed.  This may be a raw vector, or a
+#' @param dst destination in which to write the compressed data. If \code{NULL}
+#'        (the default) data will be returned as a raw vector.  If a string, 
+#'        then this will be the filename to which the data is written.  \code{dst}
+#'        may also be a connection object e.g. \code{pipe()}, \code{file()} etc.
+#' @param src Source from which compressed data is read. If a string, 
+#'        then this will be the filename to read data from.  \code{dst}
+#'        may also be a connection object e.g. \code{pipe()}, \code{file()} etc.
+#' @param x Data to be compressed.  This may be a raw vector, or a
 #'        character string
 #' @param type Should data be returned as a 'raw' vector or as a 'string'? 
 #'        Default: 'raw'
@@ -80,16 +110,31 @@ zstd_unserialize <- function(src, ..., dctx = NULL, use_file_streaming = FALSE) 
 #' @export
 #' 
 #' @examples
+#' # With raw vectors
 #' dat <- sample(as.raw(1:10), 1000, replace = TRUE)
-#' vec <- zstd_compress(dat)
-#' zstd_decompress(vec)
+#' vec <- zstd_compress(x = dat)
+#' zstd_decompress(src = vec)
 #' 
+#' # With files
 #' tmp <- tempfile()
-#' zstd_compress(dat, file = tmp)
-#' zstd_decompress(tmp)
+#' zstd_compress(x = dat, dst = tmp)
+#' zstd_decompress(src = tmp)
+#' 
+#' # With connections
+#' tmp <- tempfile()
+#' zstd_compress(x = dat, dst = file(tmp))
+#' zstd_decompress(src = file(tmp))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-zstd_compress <- function(src, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE) {
-  .Call(zstd_compress_, src, file, cctx, list(...), use_file_streaming)
+zstd_compress <- function(x, ..., dst = NULL, cctx = NULL, use_file_streaming = FALSE) {
+  if (!inherits(dst, 'connection')) {
+    .Call(zstd_compress_, x, dst, cctx, list(...), use_file_streaming)
+  } else {
+    if(!isOpen(dst)){
+      on.exit(close(dst)) 
+      open(dst, "wb")
+    }
+    .Call(zstd_compress_conn_, x, dst, cctx, list(...))
+  }
 }
 
 
@@ -99,5 +144,15 @@ zstd_compress <- function(src, ..., file = NULL, cctx = NULL, use_file_streaming
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstd_decompress <- function(src, type = 'raw', ..., dctx = NULL, use_file_streaming = FALSE) {
-  .Call(zstd_decompress_, src, type, dctx, list(...), use_file_streaming)
+  if (!inherits(src, 'connection')) {
+    .Call(zstd_decompress_, src, type, dctx, list(...), use_file_streaming)
+  } else {
+    if(!isOpen(src)){
+      on.exit(close(src))
+      open(src, "rb")
+    }
+    .Call(zstd_decompress_conn_, src, type, dctx, list(...))
+  }
 } 
+
+

@@ -16,7 +16,7 @@
 #include "cctx.h"
 #include "dctx.h"
 #include "utils.h"
-#include "compress-file.h"
+#include "raw-file.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Serialize an R object to a buffer of fixed size and then compress

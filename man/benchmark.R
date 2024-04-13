@@ -87,7 +87,7 @@ fst_df$pkg <- 'fst'
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 compress_zstdlite <- function(df, file, compress) {
   cctx <- zstd_cctx(num_threads = 1, level = compress)
-  res <- bench::mark(zstd_serialize(df, file = file, cctx = cctx, use_file_streaming = FALSE))
+  res <- bench::mark(zstd_serialize(df, dst = file, cctx = cctx, use_file_streaming = FALSE))
   
   res1 <- data.frame(
     type    = 'Compress (Serialize)',

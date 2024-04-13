@@ -1,4 +1,9 @@
 
+
+# zstdlite 0.2.8.9000  2024-04-13
+
+* Add support for connections for compression and serialization
+
 # zstdlite 0.2.8  2024-03-29
 
 * Update to zstd library v1.5.6

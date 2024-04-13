@@ -5,6 +5,7 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <Rdefines.h>
+#include <R_ext/Connections.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +14,6 @@
 #include "zstd/zstd.h"
 #include "calc-size-robust.h"
 #include "cctx.h"
-#include "compress-file.h"
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,7 +28,9 @@
 // Serialize an R object to a buffer of fixed size and then compress
 // the buffer using zstd
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
+SEXP zstd_compress_conn_(SEXP vec_, SEXP conn_, SEXP cctx_, SEXP opts_) {
+  
+  Rconnection rconn = R_GetConnection(conn_);
   
   static unsigned char zstd_raw[OUTSIZE];
   ZSTD_CCtx *cctx;
@@ -46,7 +48,7 @@ SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
     src = (unsigned char *)CHAR(STRING_ELT(vec_, 0));
     src_size = (size_t)strlen(CHAR(STRING_ELT(vec_, 0)));
   } else {
-    error("zstd_compress() only accepts raw vectors or strings");
+    error("zstd_compress_conn_() only accepts raw vectors or strings");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,21 +61,12 @@ SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Open file for output
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  const char *filename = CHAR(STRING_ELT(file_, 0));
-  FILE *fp = fopen(filename, "wb");
-  if (fp == NULL) {
-    error("zstd_compress_stream_file_(): Couldn't open output file '%s'", filename);
-  }
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // For streaming compression, need to manually set the 
   // number of uncompressed bytes
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t res = ZSTD_CCtx_setPledgedSrcSize(cctx, (unsigned long long)src_size);
   if (ZSTD_isError(res)) {
-    error("zstd_compress_stream_file_(): Error on pledge size\n");
+    error("zstd_compress_conn_(): Error on pledge size\n");
   }
   
 
@@ -94,9 +87,10 @@ SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
     };
     size_t remaining_bytes = ZSTD_compressStream2(cctx, &output, &input, ZSTD_e_continue);
     if (ZSTD_isError(remaining_bytes)) {
-      error("zstd_compress_stream_file_() [mid]: error %s\n", ZSTD_getErrorName(remaining_bytes));
+      error("zstd_compress_conn_() [mid]: error %s\n", ZSTD_getErrorName(remaining_bytes));
     }
-    fwrite(output.dst, 1, output.pos, fp);
+    // fwrite(output.dst, 1, output.pos, fp);
+    R_WriteConnection(rconn, output.dst, output.pos);
   } while(input.pos != input.size);
     
 
@@ -112,15 +106,15 @@ SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
     };
     remaining_bytes = ZSTD_compressStream2(cctx, &output, &input, ZSTD_e_end);
     if (ZSTD_isError(remaining_bytes)) {
-      error("zstd_compress_stream_file_() [end]: error %s\n", ZSTD_getErrorName(remaining_bytes));
+      error("zstd_compress_conn_() [end]: error %s\n", ZSTD_getErrorName(remaining_bytes));
     }
-    fwrite(output.dst, 1, output.pos, fp);
+    // fwrite(output.dst, 1, output.pos, fp);
+    R_WriteConnection(rconn, output.dst, output.pos);
   } while (remaining_bytes != 0);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) ZSTD_freeCCtx(cctx);
-  fclose(fp);
   return R_NilValue;
 }

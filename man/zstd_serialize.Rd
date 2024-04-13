@@ -5,7 +5,7 @@
 \alias{zstd_unserialize}
 \title{Serialize/Unserialize arbitrary R objects to a compressed stream of bytes using Zstandard}
 \usage{
-zstd_serialize(robj, ..., file = NULL, cctx = NULL, use_file_streaming = FALSE)
+zstd_serialize(robj, ..., dst = NULL, cctx = NULL, use_file_streaming = FALSE)
 
 zstd_unserialize(src, ..., dctx = NULL, use_file_streaming = FALSE)
 }
@@ -16,7 +16,7 @@ zstd_unserialize(src, ..., dctx = NULL, use_file_streaming = FALSE)
 context initializers. 
 Note: These argument are only used when \code{cctx} or \code{dctx} is NULL}
 
-\item{file}{filename in which to serialize data. If NULL (the default), then 
+\item{dst}{filename in which to serialize data. If NULL (the default), then 
 serialize the results to a raw vector}
 
 \item{cctx}{ZSTD Compression Context created by \code{zstd_cctx()} or NULL.
@@ -40,10 +40,17 @@ Raw vector of compressed serialized data, or \code{NULL} if file
 Serialize/Unserialize arbitrary R objects to a compressed stream of bytes using Zstandard
 }
 \examples{
+# Raw vector
 vec <- zstd_serialize(mtcars)
-zstd_unserialize(vec)
+zstd_unserialize(src = vec)
 
+# file
 tmp <- tempfile()
-zstd_serialize(mtcars, file = tmp)
-zstd_unserialize(tmp)
+zstd_serialize(mtcars, dst = tmp)
+zstd_unserialize(src = tmp)
+
+# connection
+tmp <- tempfile()
+zstd_serialize(mtcars, dst = file(tmp))
+zstd_unserialize(src = file(tmp))
 }
