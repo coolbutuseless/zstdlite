@@ -41,7 +41,7 @@ SEXP zstd_decompress_stream_file_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_)
   if (!isNull(dctx_)) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   } else {
-    dctx = init_dctx_with_opts(opts_, 0); // Streaming does NOT have stable buffers
+    dctx = init_dctx_with_opts(opts_, 0, 0); // Streaming does NOT have stable buffers
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

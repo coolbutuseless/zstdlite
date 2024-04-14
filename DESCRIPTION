@@ -1,7 +1,7 @@
 Package: zstdlite
 Type: Package
 Title: Fast Compression and Serialization with 'Zstandard' Algorithm
-Version: 0.2.8.9000
+Version: 0.2.9
 Authors@R: c(
     person("Mike", "Cheng", role = c("aut", "cre", 'cph'), email = "mikefc@coolbutuseless.com"),
     person("Yann", "Collet", role = c("aut"), comment = "Author of the embedded Zstandard library"),
@@ -9,10 +9,9 @@ Authors@R: c(
     )
 Maintainer: Mike Cheng <mikefc@coolbutuseless.com>
 Description: Fast, compressed serialization of R objects using the 'Zstandard' algorithm.
-    R objects can be compressed and decompressed quickly using the standard 
-    serialization mechanism in R.   Raw byte vectors
-    and strings are also handled directly for compatibility with compressed data created
-    by other systems and programs supporting 'Zstandard' compression.   
+    The included zstandard connection ('zstdfile()') can be used to read/write
+    compressed data by any code which supports R's built-in 'connections'
+    mechanism.
     Dictionaries are supported for more effective compression of small data, 
     and functions are provided for training these dictionaries.
     This implementation provides an R interface to advanced features of 

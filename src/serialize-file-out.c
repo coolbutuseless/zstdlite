@@ -165,7 +165,7 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP cctx_, SEXP opts_) 
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) {
-    buf.cctx = init_cctx_with_opts(opts_, 0);
+    buf.cctx = init_cctx_with_opts(opts_, 0, 0);
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
   }

@@ -1,9 +1,11 @@
 
+# zstdlite 0.2.9  2024-04-15
 
-# zstdlite 0.2.8.9000  2024-04-13
-
-* Add support for connections for compression and serialization
-
+* `zstd_serialize()`, `zstd_unserialize()`, `zstd_compress()` and `zstd_decompress()`
+  now support connections.
+* Add `zstdfile()` - a connection with for reading/writing of zstd compressed
+  data
+  
 # zstdlite 0.2.8  2024-03-29
 
 * Update to zstd library v1.5.6

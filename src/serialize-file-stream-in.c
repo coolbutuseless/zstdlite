@@ -85,7 +85,7 @@ SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
   if (isNull(dctx_)) {
-    dctx = init_dctx_with_opts(opts_, 0); // Streaming does NOT have stable buffers
+    dctx = init_dctx_with_opts(opts_, 0, 0); // Streaming does NOT have stable buffers
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   }

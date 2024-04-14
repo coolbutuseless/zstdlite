@@ -53,7 +53,7 @@ SEXP zstd_compress_stream_file_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_) {
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) {
-    cctx = init_cctx_with_opts(opts_, 0);
+    cctx = init_cctx_with_opts(opts_, 0, 0);
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
   }

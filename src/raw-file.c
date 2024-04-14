@@ -62,7 +62,7 @@ SEXP zstd_compress_(SEXP vec_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_file
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx_with_opts(opts_, 1); // stable buffers
+    cctx = init_cctx_with_opts(opts_, 1, 0); // stable buffers
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     cctx_set_stable_buffers(cctx);
@@ -177,7 +177,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_, SEXP use_fi
   ZSTD_DCtx * dctx;
   
   if (isNull(dctx_)) {
-    dctx = init_dctx_with_opts(opts_, 1); // This method has a stable buffer
+    dctx = init_dctx_with_opts(opts_, 1, 0); // This method has a stable buffer
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
     dctx_set_stable_buffers(dctx);

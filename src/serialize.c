@@ -79,7 +79,7 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
   if (isNull(cctx_)) {
-    cctx = init_cctx_with_opts(opts_, 1); // stable_buffers = 1
+    cctx = init_cctx_with_opts(opts_, 1, 0); // stable_buffers = 1
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
     cctx_set_stable_buffers(cctx);
@@ -185,7 +185,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
   if (isNull(dctx_)) {
-    dctx = init_dctx_with_opts(opts_, 1);  // Has a stable buffer
+    dctx = init_dctx_with_opts(opts_, 1, 0);  // Has a stable buffer
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
     dctx_set_stable_buffers(dctx);

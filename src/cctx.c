@@ -210,7 +210,7 @@ static void zstd_cctx_finalizer(SEXP cctx_) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
+ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Defaults
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -285,7 +285,7 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
     } else if (strcmp(opt_name, "dict") == 0) {
       dict_ = val_;
     } else {
-      warning("init_cctx(): Unknown option '%s'", opt_name);
+      if (!quiet) warning("init_cctx(): Unknown option '%s'", opt_name);
     }
   }
   
@@ -322,7 +322,7 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP init_cctx_(SEXP opts_) {
   
-  ZSTD_CCtx *cctx = init_cctx_with_opts(opts_, 0);
+  ZSTD_CCtx *cctx = init_cctx_with_opts(opts_, 0, 0);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Wrap 'cctx' as an R external pointer

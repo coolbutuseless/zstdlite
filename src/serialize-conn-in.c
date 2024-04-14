@@ -7,6 +7,10 @@
 #include <Rdefines.h>
 #include <R_ext/Connections.h>
 
+#if ! defined(R_CONNECTIONS_VERSION) || R_CONNECTIONS_VERSION != 1
+#error "Unsupported connections API version"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -126,7 +130,7 @@ SEXP zstd_unserialize_conn_(SEXP conn_, SEXP dctx_, SEXP opts_) {
   if (!isNull(dctx_)) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   } else {
-    dctx = init_dctx_with_opts(opts_, 0); // Streaming does NOT have stable buffers
+    dctx = init_dctx_with_opts(opts_, 0, 0); // Streaming does NOT have stable buffers
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -107,7 +107,7 @@ void dctx_set_stable_buffers(ZSTD_DCtx *dctx) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers) {
+ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Defaults
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,7 +168,7 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers) {
     } else if (strcmp(opt_name, "dict") == 0) {
       dict_ = val_;
     } else {
-      warning("init_dctx(): Unknown option '%s'", opt_name);
+      if (!quiet) warning("init_dctx(): Unknown option '%s'", opt_name);
     }
   }
   
@@ -204,7 +204,7 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP init_dctx_(SEXP opts_) {
 
-  ZSTD_DCtx *dctx = init_dctx_with_opts(opts_, 0);  // Assume NOT stable buffers by default
+  ZSTD_DCtx *dctx = init_dctx_with_opts(opts_, 0, 0);  // Assume NOT stable buffers by default
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Wrap 'dctx' into an R external pointer

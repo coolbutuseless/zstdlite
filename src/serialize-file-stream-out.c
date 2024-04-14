@@ -130,7 +130,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) {
-    buf.cctx = init_cctx_with_opts(opts_, 0);  // streaming does NOT have stable buffers.
+    buf.cctx = init_cctx_with_opts(opts_, 0, 0);  // streaming does NOT have stable buffers.
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
   }

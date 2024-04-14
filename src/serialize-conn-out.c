@@ -7,6 +7,10 @@
 #include <Rdefines.h>
 #include <R_ext/Connections.h>
 
+#if ! defined(R_CONNECTIONS_VERSION) || R_CONNECTIONS_VERSION != 1
+#error "Unsupported connections API version"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -149,7 +153,7 @@ SEXP zstd_serialize_conn_(SEXP robj, SEXP conn_, SEXP cctx_, SEXP opts_) {
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) {
-    buf.cctx = init_cctx_with_opts(opts_, 0);
+    buf.cctx = init_cctx_with_opts(opts_, 0, 0);
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
   }

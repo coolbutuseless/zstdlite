@@ -34,6 +34,9 @@ extern SEXP zstd_unserialize_stream_(SEXP raw_vec_, SEXP dctx_, SEXP opts_);
 extern SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_shrink_allow_);
 extern SEXP zstd_dict_id_(SEXP dict_);
 
+
+extern SEXP zstdfile_(SEXP description_, SEXP mode_, SEXP opts_, SEXP cctx_, SEXP dctx_);
+  
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // .C      R_CMethodDef
 // .Call   R_CallMethodDef
@@ -69,6 +72,8 @@ static const R_CallMethodDef CEntries[] = {
   
   {"zstd_train_dictionary_"       , (DL_FUNC) &zstd_train_dictionary_       , 4},
   {"zstd_dict_id_"                , (DL_FUNC) &zstd_dict_id_                , 1},
+  
+  {"zstdfile_", (DL_FUNC) &zstdfile_, 5},
   
   {NULL, NULL, 0}
 };
