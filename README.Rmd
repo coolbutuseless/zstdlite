@@ -87,7 +87,13 @@ Things to note in this comparison for the particular data used:
 
 ## Installation
 
-You can install from [GitHub](https://github.com/coolbutuseless/zstdlite) with:
+To install from r-universe:
+
+``` r
+install.packages('zstdlite', repos = c('https://coolbutuseless.r-universe.dev', 'https://cloud.r-project.org'))
+```
+
+To install latest version from [GitHub](https://github.com/coolbutuseless/zstdlite):
 
 ``` r
 # install.package('remotes')
@@ -112,6 +118,9 @@ zstd_unserialize(compressed_bytes)
 
 
 ## Using a `zstdfile()` connection
+
+Use `zstdfile()` to allow read/write access of compressed data from any R code
+or package which supports connections.
 
 ```{r}
 tmp <- tempfile()

@@ -290,7 +290,7 @@ int zstdfile_fflush(struct Rconn *rconn) {
 // readBin()
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 size_t zstdfile_read(void *dst, size_t size, size_t nitems, struct Rconn *rconn) {
-  if (DEBUG_ZSTDFILE) Rprintf("zstdfile_read(size = %i, nitems = %i)\n", size, nitems);
+  if (DEBUG_ZSTDFILE) Rprintf("zstdfile_read(size = %zu, nitems = %zu)\n", size, nitems);
   
   zstd_state *zstate = (zstd_state *)rconn->private;
   
@@ -404,7 +404,7 @@ int zstdfile_fgetc(struct Rconn *rconn) {
 // writeBin()
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 size_t zstdfile_write(const void *src, size_t size, size_t nitems, struct Rconn *rconn) {
-  if (DEBUG_ZSTDFILE) Rprintf("zstdfile_write(size = %i, nitems = %i)\n", size, nitems);
+  if (DEBUG_ZSTDFILE) Rprintf("zstdfile_write(size = %zu, nitems = %zu)\n", size, nitems);
   
   zstd_state *zstate = (zstd_state *)rconn->private;
   
