@@ -25,13 +25,17 @@
 #' @export
 #' 
 #' @examples
+#' # Binary 
 #' tmp <- tempfile()
 #' dat <- as.raw(1:255)
 #' writeBin(dat, zstdfile(tmp, level = 20))
 #' readBin(zstdfile(tmp),  raw(), 1000)
-#' #txt <- as.character(mtcars)
-#' #writeLines(txt, zstdfile(tmp))
-#' #readLines(zstdfile(tmp))
+#' 
+#' # Text
+#' tmp <- tempfile()
+#' txt <- as.character(mtcars)
+#' writeLines(txt, zstdfile(tmp))
+#' readLines(zstdfile(tmp))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstdfile <- function(description, open = "", ..., cctx = NULL, dctx = NULL) {
   .Call(

@@ -7,7 +7,8 @@ test_that("zstdfile works", {
   tst <- readBin(zstdfile(tmp),  raw(), 1000)
   expect_identical(tst, dat)
   
-  #txt <- as.character(mtcars)
-  #writeLines(txt, zstdfile(tmp))
-  #readLines(zstdfile(tmp))
+  tmp <- tempfile()
+  txt <- as.character(mtcars)
+  writeLines(txt, zstdfile(tmp))
+  readLines(zstdfile(tmp))
 })
