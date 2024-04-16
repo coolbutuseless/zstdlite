@@ -15,6 +15,8 @@
 #include "zdict.h"
 #include "utils.h"
 
+#include "dictionaries.h"
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Retrieve the ID of the dictionary.  Returns zero if not a dictionary
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +42,7 @@ SEXP zstd_dict_id_(SEXP src_) {
     src = buf;
     src_size = bytes_read;
   } else {
-    error("zstd_dict_id_for_buffer_(): Currently only supports raw vector input");
+    error("zstd_dict_id_for_buffer_(): Currently only supports files and raw vector input");
   } 
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

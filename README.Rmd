@@ -57,6 +57,7 @@ and is included under its BSD license (compatible with the MIT license for this 
       of `zstd` compression on the serialized data
 * `zstd_compress()` and `zstd_decompress()` are for compressing/decompressing strings and raw vectors -
   usually for interfacing with other systems e.g. data was already compressed on the command line.
+* `zstd_info()` returns a named list of information about a compressed data source
 * `zstd_cctx()` and `zstd_dctx()` initialize compression and 
   decompression contexts, respectively.  Options:
     * `level` compression level in range [-5, 22]. Default: 3

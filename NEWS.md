@@ -1,3 +1,6 @@
+# zstdlite 0.2.10 2024-04-16
+
+* Added `zstd_info()` to return information about a compressed data stream.
 
 # zstdlite 0.2.9  2024-04-15
 

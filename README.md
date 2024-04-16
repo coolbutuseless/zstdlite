@@ -33,6 +33,8 @@ MIT license for this package).
   compressing/decompressing strings and raw vectors - usually for
   interfacing with other systems e.g. data was already compressed on the
   command line.
+- `zstd_info()` returns a named list of information about a compressed
+  data source
 - `zstd_cctx()` and `zstd_dctx()` initialize compression and
   decompression contexts, respectively. Options:
   - `level` compression level in range \[-5, 22\]. Default: 3
@@ -61,8 +63,14 @@ Things to note in this comparison for the particular data used:
 
 ## Installation
 
-You can install from
-[GitHub](https://github.com/coolbutuseless/zstdlite) with:
+To install from r-universe:
+
+``` r
+install.packages('zstdlite', repos = c('https://coolbutuseless.r-universe.dev', 'https://cloud.r-project.org'))
+```
+
+To install latest version from
+[GitHub](https://github.com/coolbutuseless/zstdlite):
 
 ``` r
 # install.package('remotes')
@@ -107,6 +115,9 @@ zstd_unserialize(compressed_bytes)
     #> Valiant           18.1   6  225 105 2.76 3.460 20.22  1  0    3    1
 
 ## Using a `zstdfile()` connection
+
+Use `zstdfile()` to allow read/write access of compressed data from any
+R code or package which supports connections.
 
 ``` r
 tmp <- tempfile()
@@ -226,14 +237,14 @@ manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
 lobstr::obj_size(manifesto)
 ```
 
-    #> 33.06 kB
+    #> 32.83 kB
 
 ``` r
 compressed <- zstd_compress(manifesto, level = 22)
 lobstr::obj_size(compressed)
 ```
 
-    #> 9.30 kB
+    #> 9.27 kB
 
 ``` r
 identical(

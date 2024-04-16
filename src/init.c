@@ -37,6 +37,8 @@ extern SEXP zstd_dict_id_(SEXP dict_);
 
 extern SEXP zstdfile_(SEXP description_, SEXP mode_, SEXP opts_, SEXP cctx_, SEXP dctx_);
   
+extern SEXP zstd_info_(SEXP src_);
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // .C      R_CMethodDef
 // .Call   R_CallMethodDef
@@ -73,7 +75,8 @@ static const R_CallMethodDef CEntries[] = {
   {"zstd_train_dictionary_"       , (DL_FUNC) &zstd_train_dictionary_       , 4},
   {"zstd_dict_id_"                , (DL_FUNC) &zstd_dict_id_                , 1},
   
-  {"zstdfile_", (DL_FUNC) &zstdfile_, 5},
+  {"zstdfile_" , (DL_FUNC) &zstdfile_ , 5},
+  {"zstd_info_", (DL_FUNC) &zstd_info_, 1},
   
   {NULL, NULL, 0}
 };
