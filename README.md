@@ -25,6 +25,8 @@ MIT license for this package).
   - Supports read/write of both text and binary data. e.g. `readLines()`
     and `readBin()`
   - Can be used by any R code which supports connections.
+  - Like `gzcon()`, `zstdfile()` can also write to other connections.
+    - e.g. `zstdfile(fifo("out"))`
 - `zstd_serialize()` and `zstd_unserialize()`
   - convert arbitrary R objects to/from a compressed representation
   - this is equivalent to base R’s `serialize()`/`unserialize()` with
@@ -237,14 +239,14 @@ manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
 lobstr::obj_size(manifesto)
 ```
 
-    #> 32.83 kB
+    #> 37.13 kB
 
 ``` r
 compressed <- zstd_compress(manifesto, level = 22)
 lobstr::obj_size(compressed)
 ```
 
-    #> 9.27 kB
+    #> 10.33 kB
 
 ``` r
 identical(

@@ -77,6 +77,9 @@
 
 #define DEBUG_ZSTDFILE 0
 
+#define TOFILE 1
+#define TOCONN 2
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // A magic size calculated via ZSTD_CStream_InSize()
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,7 +99,9 @@ typedef struct {
   ZSTD_DCtx *dctx; // decompression context
   ZSTD_CCtx *cctx; //   compression context
   
+  int type; // FILE or connection?
   FILE *fp; // The file containing zstd compresseddata
+  Rconnection inner; // the connection to read/write to
   
   // Used by readLines()/fgetc()
   unsigned char uncompressed_data[OUTSIZE];
@@ -158,22 +163,34 @@ Rboolean zstdfile_open(struct Rconn *rconn) {
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Setup file pointer
+  // State
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  FILE *fp;
-  if (rconn->canread) {
-    fp = fopen(rconn->description, "rb");
+  zstd_state *zstate = (zstd_state *)rconn->private;
+  
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Setup file pointer or connection object
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  if (zstate->type == TOFILE) {
+    FILE *fp;
+    if (rconn->canread) {
+      fp = fopen(rconn->description, "rb");
+    } else {
+      fp = fopen(rconn->description, "wb");
+    }
+    if (fp == NULL) {
+      error("zstdfile_(): Couldn't open input file '%s' with mode '%s'", rconn->description, rconn->mode);
+    }
+    zstate->fp = fp;
   } else {
-    fp = fopen(rconn->description, "wb");
-  }
-  if (fp == NULL) {
-    error("zstdfile_(): Couldn't open input file '%s' with mode '%s'", rconn->description, rconn->mode);
+    if (rconn->canread) {
+      strncpy(zstate->inner->mode, "rb", 2);
+    } else {
+      strncpy(zstate->inner->mode, "wb", 2);
+    }
+    zstate->inner->open(zstate->inner);
   }
   
   // Buffer of compressed data read from the "*.zstd" file
-  zstd_state *zstate = (zstd_state *)rconn->private;
-  zstate->fp              = fp;
-  
   zstate->compressed_pos  = 0;
   zstate->compressed_len  = 0;
   zstate->compressed_size = INSIZE;
@@ -195,7 +212,7 @@ Rboolean zstdfile_open(struct Rconn *rconn) {
 //    by the garbage collector.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void zstdfile_close(struct Rconn *rconn) {
-  if (DEBUG_ZSTDFILE)Rprintf("zstdfile_close('%s')\n", rconn->description);
+  if (DEBUG_ZSTDFILE)Rprintf("zstdfile_close()\n");
   
   rconn->isopen = FALSE;
   zstd_state *zstate = (zstd_state *)rconn->private;
@@ -222,17 +239,25 @@ void zstdfile_close(struct Rconn *rconn) {
       if (ZSTD_isError(remaining_bytes)) {
         Rprintf("write_bytes_to_stream_file() [end]: error %s\n", ZSTD_getErrorName(remaining_bytes));
       }
-      fwrite(output.dst, 1, output.pos, zstate->fp);
+      if (zstate->type == TOFILE) {
+        fwrite(output.dst, 1, output.pos, zstate->fp);
+      } else {
+        R_WriteConnection(zstate->inner,  output.dst, output.pos);
+      }
     } while (remaining_bytes > 0);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Close the file
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (zstate->fp) {
+  if (zstate->type == TOFILE && zstate->fp) {
     fclose(zstate->fp);
     zstate->fp = NULL;  
   }
+  if (zstate->type == TOCONN && zstate->inner) {
+    zstate->inner->close(zstate->inner);
+  }
+  
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -297,15 +322,14 @@ size_t zstdfile_read(void *dst, size_t size, size_t nitems, struct Rconn *rconn)
   size_t len = size * nitems;
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Dummy code so that the buffer has something in it!
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // memset(dst, 0, len);
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // If file read buffer  is empty, then fill it
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (zstate->compressed_len == 0) {
-    zstate->compressed_len = fread(zstate->compressed_data, 1, zstate->compressed_size, zstate->fp);
+    if (zstate->type == TOFILE) {
+      zstate->compressed_len = fread(zstate->compressed_data, 1, zstate->compressed_size, zstate->fp);
+    } else {
+      zstate->compressed_len = R_ReadConnection(zstate->inner, zstate->compressed_data, zstate->compressed_size);
+    }
     zstate->compressed_pos = 0;
   }
   
@@ -348,14 +372,27 @@ size_t zstdfile_read(void *dst, size_t size, size_t nitems, struct Rconn *rconn)
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if (zstate->compressed_pos == zstate->compressed_len) {
       
-      if (feof(zstate->fp)) {
+      
+      // file read buffer is exhausted. read more bytes
+      if (zstate->type == TOFILE) {
+        if (feof(zstate->fp)) {
+          rconn->EOF_signalled = TRUE;
+          break;
+        }
+        zstate->compressed_len = fread(zstate->compressed_data, 1, zstate->compressed_size, zstate->fp);
+      } else {
+        if (zstate->inner->EOF_signalled) {
+          rconn->EOF_signalled = TRUE;
+          break;
+        }
+        zstate->compressed_len = R_ReadConnection(zstate->inner, zstate->compressed_data, zstate->compressed_size);
+      }
+      zstate->compressed_pos = 0;
+      
+      if (zstate->compressed_len == 0) {
         rconn->EOF_signalled = TRUE;
         break;
       }
-      
-      // file read buffer is exhausted. read more bytes
-      zstate->compressed_len = fread(zstate->compressed_data, 1, zstate->compressed_size, zstate->fp);
-      zstate->compressed_pos = 0;
       
       input.src  = zstate->compressed_data;
       input.size = zstate->compressed_len;
@@ -379,8 +416,12 @@ int zstdfile_fgetc(struct Rconn *rconn) {
   zstd_state *zstate = (zstd_state *)rconn->private;
   
   if (zstate->uncompressed_pos == zstate->uncompressed_len) {
-    if (feof(zstate->fp)) {
+    if (zstate->type == TOFILE && feof(zstate->fp)) {
       // This is where EOF is likely connected. Not in the check below.
+      rconn->EOF_signalled = TRUE;
+      return -1;
+    } 
+    if (zstate->type == TOCONN && zstate->inner->EOF_signalled) {
       rconn->EOF_signalled = TRUE;
       return -1;
     }
@@ -411,7 +452,6 @@ size_t zstdfile_write(const void *src, size_t size, size_t nitems, struct Rconn 
   size_t len = size * nitems;
   
   static unsigned char zstd_raw[OUTSIZE];
-  FILE *fp = zstate->fp;
   
   if (zstate->uncompressed_pos + (size_t)len >= zstate->uncompressed_size) {
     
@@ -437,7 +477,11 @@ size_t zstdfile_write(const void *src, size_t size, size_t nitems, struct Rconn 
         Rprintf("zstdfile_write(): error %s\n", ZSTD_getErrorName(rem));
       }
       
-      fwrite(output.dst, 1, output.pos, fp);
+      if (zstate->type == TOFILE) {
+        fwrite(output.dst, 1, output.pos, zstate->fp);
+      } else {
+        R_WriteConnection(zstate->inner, output.dst, output.pos);
+      }
     } while (input.pos != input.size);
     
     //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -469,7 +513,11 @@ size_t zstdfile_write(const void *src, size_t size, size_t nitems, struct Rconn 
           Rprintf("zstdfile_write(): error %s\n", ZSTD_getErrorName(rem));
         }
         
-        fwrite(output.dst, 1, output.pos, fp);
+        if (zstate->type == TOFILE) {
+          fwrite(output.dst, 1, output.pos, zstate->fp);
+        } else {
+          R_WriteConnection(zstate->inner, output.dst, output.pos);
+        }
       } while (input.pos != input.size);
       
       return len;
@@ -561,6 +609,20 @@ SEXP zstdfile_(SEXP description_, SEXP mode_, SEXP opts_, SEXP cctx_, SEXP dctx_
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   zstd_state *zstate = (zstd_state *)calloc(1, sizeof(zstd_state));
   
+  char *conn_description;
+  
+  if (TYPEOF(description_) == STRSXP) {
+    zstate->type = TOFILE;
+    conn_description = (char *)CHAR(STRING_ELT(description_, 0));
+  } else {
+    zstate->type = TOCONN;
+    conn_description = "zstdfile(connection())";
+    zstate->inner = R_GetConnection(description_);
+    if (zstate->inner->isopen) {
+      error("zstdcon_(): Inner connection must not already be open\n");
+    }
+  }
+  
   // Compession/Decompression context
   if (isNull(cctx_)) {
     zstate->cctx = init_cctx_with_opts(opts_, 0, 1);
@@ -581,7 +643,7 @@ SEXP zstdfile_(SEXP description_, SEXP mode_, SEXP opts_, SEXP cctx_, SEXP dctx_
   // I think it takes responsibility for freeing it later.
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Rconnection con = NULL;
-  SEXP rc = PROTECT(R_new_custom_connection(CHAR(STRING_ELT(description_, 0)), "rb", "zstdfile", &con));
+  SEXP rc = PROTECT(R_new_custom_connection(conn_description, "rb", "zstdfile", &con));
   
   con->isopen     = FALSE; // not open initially.
   con->incomplete =  TRUE; // NFI. Data write hasn't been completed?

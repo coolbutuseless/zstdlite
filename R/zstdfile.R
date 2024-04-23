@@ -38,15 +38,19 @@
 #' readLines(zstdfile(tmp))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 zstdfile <- function(description, open = "", ..., cctx = NULL, dctx = NULL) {
+  
+  if (is.character(description)) {
+    description <- normalizePath(description, mustWork = FALSE)
+  }
+  
   .Call(
     zstdfile_, 
-    description = normalizePath(description, mustWork = FALSE), 
+    description = description,
     open        = open,
     opts        = list(...), 
     cctx        = cctx, dctx = dctx
   )
 }
-
 
 
 if (FALSE) {

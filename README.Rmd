@@ -51,6 +51,8 @@ and is included under its BSD license (compatible with the MIT license for this 
     * Supports read/write of both text and binary data.  e.g. `readLines()` and 
       `readBin()`
     * Can be used by any R code which supports connections.
+    * Like `gzcon()`, `zstdfile()` can also write to other connections.
+        * e.g. `zstdfile(fifo("out"))`
 * `zstd_serialize()` and `zstd_unserialize()` 
     * convert arbitrary R objects to/from a compressed representation
     * this is equivalent to base R's `serialize()`/`unserialize()` with the addition
