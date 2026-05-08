@@ -126,7 +126,8 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
     error("zstd_train_dictionary(): Could not allocate %i * %zu = %zu bytes for 'samplesSizes'", nbSamples, sizeof(size_t), nbSamples * sizeof(size_t));
   }
 
-  SEXP dictBuffer_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dictBufferCapacity));
+  int nprotect = 0;
+  SEXP dictBuffer_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dictBufferCapacity)); nprotect++;
   unsigned char *dictBuffer = (unsigned char *)RAW(dictBuffer_);
 
   size_t pos = 0;
@@ -214,13 +215,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (actual_dict_size < dictBufferCapacity) {
     // Rprintf("zstd_train_dictionary() Note: dict only used %i / %i bytes\n", actual_dict_size, dictBufferCapacity);
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // Truncate the user-viewable size of the RAW vector
-    // Requires: R_VERSION >= R_Version(3, 4, 0)
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    SETLENGTH(dictBuffer_, (R_xlen_t)actual_dict_size);
-    SET_TRUELENGTH(dictBuffer_, (R_xlen_t)dictBufferCapacity);
-    SET_GROWABLE_BIT(dictBuffer_);
+    dictBuffer_ = PROTECT(Rf_lengthgets(dictBuffer_, actual_dict_size)); nprotect++;
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,7 +223,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   free(samplesBuffer);
   free(samplesSizes);
-  UNPROTECT(1);
+  UNPROTECT(nprotect);
   return dictBuffer_;
 }
 

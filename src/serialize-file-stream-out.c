@@ -148,7 +148,8 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   // Allocate compression buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t max_compressed_bytes  = ZSTD_compressBound(num_serialized_bytes);
-  SEXP dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)max_compressed_bytes));
+  int nprotect = 0;
+  SEXP dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)max_compressed_bytes)); nprotect++;
   char *dst = (char *)RAW(dst_);
 
   
@@ -203,12 +204,9 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Truncate the user-viewable size of the RAW vector
-  // Requires: R_VERSION >= R_Version(3, 4, 0)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (num_compressed_bytes < max_compressed_bytes) {
-    SETLENGTH(dst_, (R_xlen_t)num_compressed_bytes);
-    SET_TRUELENGTH(dst_, (R_xlen_t)max_compressed_bytes);
-    SET_GROWABLE_BIT(dst_);
+    dst_ = PROTECT(Rf_lengthgets(dst_, num_compressed_bytes)); nprotect++;
   }
   
   
@@ -216,7 +214,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (isNull(cctx_)) ZSTD_freeCCtx(buf.cctx);
-  UNPROTECT(1);
+  UNPROTECT(nprotect);
   return dst_;
 }
 
