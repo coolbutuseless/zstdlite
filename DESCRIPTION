@@ -20,7 +20,7 @@ URL: https://github.com/coolbutuseless/zstdlite
 BugReports: https://github.com/coolbutuseless/zstdlite/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.3
 Copyright: This package includes code from the 'Zstandard' library owned by Meta Platforms, Inc. and affiliates. 
     and created by Yann Collet.  See file 'inst/COPYRIGHTS' for details.
 Suggests: 
@@ -29,5 +29,5 @@ Suggests:
     testthat,
     bench
 Depends:
-    R (>= 3.4.0)
+    R (>= 4.1.0)
 VignetteBuilder: knitr

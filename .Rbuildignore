@@ -14,3 +14,5 @@
 ^src/zstd/zstd.o$
 ^man/benchmark.R$
 ^cran-comments\.md$
+^\.positai$
+^\.claude$

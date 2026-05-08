@@ -11,3 +11,4 @@ working
 pkgdown
 *.o
 *.so
+.positai
