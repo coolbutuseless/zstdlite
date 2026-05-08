@@ -48,9 +48,4 @@ zstd_unserialize(src = vec)
 tmp <- tempfile()
 zstd_serialize(mtcars, dst = tmp)
 zstd_unserialize(src = tmp)
-
-# connection
-tmp <- tempfile()
-zstd_serialize(mtcars, dst = file(tmp))
-zstd_unserialize(src = file(tmp))
 }
