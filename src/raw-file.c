@@ -186,6 +186,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_, SEXP use_fi
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
   if (ZSTD_isError(status)) {
+    if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
     error("zstd_decompress_(): De-compression error. %s", ZSTD_getErrorName(status));
   }
   
@@ -203,6 +204,7 @@ SEXP zstd_decompress_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_, SEXP use_fi
     // We decoded from a file buffer. Free the buffer
     free(src);
   }
+  if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
   UNPROTECT(1);
   return dst_;
 }

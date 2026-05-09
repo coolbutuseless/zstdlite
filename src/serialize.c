@@ -119,6 +119,8 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
     if (num_written != num_compressed_bytes) {
       warning("zstd_serialize_(): File '%s' only wrote %zu/%zu bytes", filename, num_written, num_compressed_bytes);
     }
+    free(buf->data);
+    free(buf);
     UNPROTECT(1);
     return R_NilValue;
   }
