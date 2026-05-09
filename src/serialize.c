@@ -96,6 +96,8 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
     cctx_unset_stable_buffers(cctx);
   }
   if (ZSTD_isError(num_compressed_bytes)) {
+    free(buf->data);
+    free(buf);
     error("zstd_serialize_(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
@@ -108,6 +110,8 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
     const char *filename = CHAR(STRING_ELT(file_, 0));
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL) {
+      free(buf->data);
+      free(buf);
       error("zstd_serialize_(): Couldn't open file for output '%s'", filename);
     }
     size_t num_written = fwrite(dst, 1, num_compressed_bytes, fp);
@@ -194,6 +198,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
   if (ZSTD_isError(status)) {
+    free(dst);
     error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }
 
@@ -233,6 +238,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
     // We decoded from a file buffer. Free the buffer
     free(src);
   }
+  free(dst);
   UNPROTECT(1);
   return res_;
 }

@@ -139,6 +139,7 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   // Sanity check
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (!isNewList(opts_)) {
+    ZSTD_freeDCtx(dctx);
     error("'opts_' must be a list");
   }
   
@@ -147,6 +148,7 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   SEXP nms_ = getAttrib(opts_, R_NamesSymbol);
   if (isNull(nms_)) {
+    ZSTD_freeDCtx(dctx);
     error("'opts_' must be a named list");
   }
   
@@ -162,6 +164,7 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
       if (!validate_checksum) {
         size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_forceIgnoreChecksum, 1);
         if (ZSTD_isError(res)) {
+          ZSTD_freeDCtx(dctx);
           error("init_dctx(): Could not set 'ZSTD_d_forceIgnoreChecksum'");
         } 
       }
@@ -186,9 +189,11 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
       status = ZSTD_DCtx_loadDictionary(dctx, dict, fsize);
       free(dict);
     } else {
+      ZSTD_freeDCtx(dctx);
       error("init_dctx(): 'dict' must be a raw vector or a filename");
     }
     if (ZSTD_isError(status)) {
+      ZSTD_freeDCtx(dctx);
       error("init_dctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
     }
   }
