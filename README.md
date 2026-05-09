@@ -19,14 +19,6 @@ MIT license for this package).
 
 ## What’s in the box
 
-- `zstdfile()`
-  - A connection object (like `gzfile()` or `url()`) which supports
-    Zstandard compressed data.
-  - Supports read/write of both text and binary data. e.g. `readLines()`
-    and `readBin()`
-  - Can be used by any R code which supports connections.
-  - Like `gzcon()`, `zstdfile()` can also write to other connections.
-    - e.g. `zstdfile(fifo("out"))`
 - `zstd_serialize()` and `zstd_unserialize()`
   - convert arbitrary R objects to/from a compressed representation
   - this is equivalent to base R’s `serialize()`/`unserialize()` with
@@ -93,16 +85,16 @@ compressed_bytes <- zstd_serialize(head(mtcars))
 length(compressed_bytes) 
 ```
 
-    #> [1] 482
+    #> [1] 481
 
 ``` r
 head(compressed_bytes, 100)
 ```
 
-    #>   [1] 28 b5 2f fd 60 e8 02 c5 0e 00 86 13 4c 41 30 67 6c 3a 00 f1 70 71 26 7f 4c
-    #>  [26] 13 ec 49 07 75 e9 64 d9 57 69 c7 18 a8 12 f8 c6 20 5d 6c 22 00 d5 a2 4b c8
-    #>  [51] ac df c3 99 67 c3 c5 5c 31 c3 43 4a 22 40 1c 68 85 23 ac c7 d1 61 7e 4d 83
-    #>  [76] c0 82 7e 0a 38 00 42 00 35 00 24 2e c1 48 db 82 a1 b6 24 62 2c e6 c3 b0 a7
+    #>   [1] 28 b5 2f fd 60 e8 02 bd 0e 00 86 d3 4b 41 20 69 6c 3a 40 0e a9 4b c6 b0 85
+    #>  [26] 4c 23 a0 52 87 46 43 0d 7e 8b a1 84 b8 9e f5 89 68 5d 6c 22 8a 6a d1 25 dc
+    #>  [51] d4 ab ff ab a2 21 b3 29 26 2d ed a7 a2 80 72 a8 67 29 2f ce 39 1d a7 af 31
+    #>  [76] a8 a0 9f 02 38 00 41 00 35 00 22 1e b9 48 bb 72 a1 76 24 5a ac e5 b3 30 e7
 
 ``` r
 zstd_unserialize(compressed_bytes) 
@@ -115,30 +107,6 @@ zstd_unserialize(compressed_bytes)
     #> Hornet 4 Drive    21.4   6  258 110 3.08 3.215 19.44  1  0    3    1
     #> Hornet Sportabout 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2
     #> Valiant           18.1   6  225 105 2.76 3.460 20.22  1  0    3    1
-
-## Using a `zstdfile()` connection
-
-Use `zstdfile()` to allow read/write access of compressed data from any
-R code or package which supports connections.
-
-``` r
-tmp <- tempfile()
-dat <- as.raw(1:255)
-writeBin(dat, zstdfile(tmp))
-readBin(zstdfile(tmp), raw(), 255)
-```
-
-    #>   [1] 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15 16 17 18 19
-    #>  [26] 1a 1b 1c 1d 1e 1f 20 21 22 23 24 25 26 27 28 29 2a 2b 2c 2d 2e 2f 30 31 32
-    #>  [51] 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f 40 41 42 43 44 45 46 47 48 49 4a 4b
-    #>  [76] 4c 4d 4e 4f 50 51 52 53 54 55 56 57 58 59 5a 5b 5c 5d 5e 5f 60 61 62 63 64
-    #> [101] 65 66 67 68 69 6a 6b 6c 6d 6e 6f 70 71 72 73 74 75 76 77 78 79 7a 7b 7c 7d
-    #> [126] 7e 7f 80 81 82 83 84 85 86 87 88 89 8a 8b 8c 8d 8e 8f 90 91 92 93 94 95 96
-    #> [151] 97 98 99 9a 9b 9c 9d 9e 9f a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 aa ab ac ad ae af
-    #> [176] b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 ba bb bc bd be bf c0 c1 c2 c3 c4 c5 c6 c7 c8
-    #> [201] c9 ca cb cc cd ce cf d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 da db dc dd de df e0 e1
-    #> [226] e2 e3 e4 e5 e6 e7 e8 e9 ea eb ec ed ee ef f0 f1 f2 f3 f4 f5 f6 f7 f8 f9 fa
-    #> [251] fb fc fd fe ff
 
 ## Using contexts to set compression arguments
 
@@ -239,14 +207,14 @@ manifesto <- paste(lorem::ipsum(paragraphs = 100), collapse = "\n")
 lobstr::obj_size(manifesto)
 ```
 
-    #> 37.13 kB
+    #> 34.32 kB
 
 ``` r
 compressed <- zstd_compress(manifesto, level = 22)
 lobstr::obj_size(compressed)
 ```
 
-    #> 10.33 kB
+    #> 9.70 kB
 
 ``` r
 identical(
@@ -319,6 +287,3 @@ s2 <- lapply(rankings, \(x) zstd_serialize(x, cctx = cctx_dict  )) |> lengths() 
 
 - Yann Collett for creating [lz4](https://github.com/lz4/lz4) and
   [zstd](https://github.com/facebook/zstd)
-- R Core for developing and maintaining such a wonderful language.
-- CRAN maintainers, for patiently shepherding packages onto CRAN and
-  maintaining the repository
