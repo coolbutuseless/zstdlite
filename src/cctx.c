@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -71,12 +71,12 @@ void cctx_set_stable_buffers(ZSTD_CCtx *cctx) {
   
   size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 1);
   if (ZSTD_isError(res)) {
-    error("cctx_set_stable_buffers() could not set 'ZSTD_c_stableInBuffer'");
+    Rf_error("cctx_set_stable_buffers() could not set 'ZSTD_c_stableInBuffer'");
   }
   
   res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableOutBuffer, 1);
   if (ZSTD_isError(res)) {
-    error("cctx_set_stable_buffers() could not set 'ZSTD_c_stableOutBuffer'");
+    Rf_error("cctx_set_stable_buffers() could not set 'ZSTD_c_stableOutBuffer'");
   }
 }
 
@@ -86,12 +86,12 @@ void cctx_unset_stable_buffers(ZSTD_CCtx *cctx) {
   
   size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableInBuffer, 0);
   if (ZSTD_isError(res)) {
-    error("cctx_set_stable_buffers() could not unset 'ZSTD_c_stableInBuffer'");
+    Rf_error("cctx_set_stable_buffers() could not unset 'ZSTD_c_stableInBuffer'");
   }
   
   res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_stableOutBuffer, 0);
   if (ZSTD_isError(res)) {
-    error("cctx_set_stable_buffers() could not unset 'ZSTD_c_stableOutBuffer'");
+    Rf_error("cctx_set_stable_buffers() could not unset 'ZSTD_c_stableOutBuffer'");
   }
 }
 
@@ -159,7 +159,7 @@ void cctx_unset_stable_buffers(ZSTD_CCtx *cctx) {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_enableDedicatedDictSearch, 1);
 // if (ZSTD_isError(res)) {
-//   error("init_cctx() could not set 'ZSTD_c_enableDedicatedDictSearch'");
+//   Rf_error("init_cctx() could not set 'ZSTD_c_enableDedicatedDictSearch'");
 // }
 
 
@@ -176,7 +176,7 @@ ZSTD_CCtx * external_ptr_to_zstd_cctx(SEXP cctx_) {
     }
   }
   
-  error("ZSTD_CCtx pointer is invalid/NULL.");
+  Rf_error("ZSTD_CCtx pointer is invalid/NULL.");
   return NULL;
 }
 
@@ -221,71 +221,71 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx *cctx = ZSTD_createCCtx();
   if (cctx == NULL) {
-    error("init_cctx(): Couldn't initialse memory for 'cctx'");
+    Rf_error("init_cctx(): Couldn't initialse memory for 'cctx'");
   }
   
   if (stable_buffers) {
-    // warning("Setting stable buffers\n");
+    // Rf_warning("Setting stable buffers\n");
     cctx_set_stable_buffers(cctx);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Short circuit if opts is empty
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (length(opts_) == 0) {
+  if (Rf_length(opts_) == 0) {
     return cctx;
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Sanity check
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNewList(opts_)) {
-    error("'opts_' must be a list");
+  if (!Rf_isNewList(opts_)) {
+    Rf_error("'opts_' must be a list");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack names
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP nms_ = getAttrib(opts_, R_NamesSymbol);
-  if (isNull(nms_)) {
-    error("'opts_' must be a named list");
+  SEXP nms_ = Rf_getAttrib(opts_, R_NamesSymbol);
+  if (Rf_isNull(nms_)) {
+    Rf_error("'opts_' must be a named list");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Parse options from user
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  for (int i = 0; i < length(opts_); i++) {
+  for (int i = 0; i < Rf_length(opts_); i++) {
     const char *opt_name = CHAR(STRING_ELT(nms_, i));
     SEXP val_ = VECTOR_ELT(opts_, i);
     
     if (strcmp(opt_name, "level") == 0) {
-      int level = asInteger(val_);
+      int level = Rf_asInteger(val_);
       level = level < -5 ? -5 : level;
       level = level > 22 ? 22 : level;
       size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_compressionLevel, level);
       if (ZSTD_isError(res)) {
-        error("init_cctx(): Bad compression level");  
+        Rf_error("init_cctx(): Bad compression level");  
       }
     } else if (strcmp(opt_name, "num_threads") == 0) {
-      int num_threads = asInteger(val_);
+      int num_threads = Rf_asInteger(val_);
       if (num_threads > 1) {
         size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_nbWorkers, num_threads);
         if (ZSTD_isError(res)) {
-          warning("init_cctx(): Included zstd library doesn't support multithreading. "
+          Rf_warning("init_cctx(): Included zstd library doesn't support multithreading. "
                      "Reverting to single-thread mode. \n");
         }
       }
     } else if (strcmp(opt_name, "include_checksum") == 0) {
-      if (asLogical(val_)) {
+      if (Rf_asLogical(val_)) {
         size_t res = ZSTD_CCtx_setParameter(cctx, ZSTD_c_checksumFlag, 1);
         if (ZSTD_isError(res)) {
-          error("init_cctx(): Couldn't set checksum flag");  
+          Rf_error("init_cctx(): Couldn't set checksum flag");  
         }
       }
     } else if (strcmp(opt_name, "dict") == 0) {
       dict_ = val_;
     } else {
-      if (!quiet) warning("init_cctx(): Unknown option '%s'", opt_name);
+      if (!quiet) Rf_warning("init_cctx(): Unknown option '%s'", opt_name);
     }
   }
   
@@ -293,10 +293,10 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Handle dictionaries
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNull(dict_)) {
+  if (!Rf_isNull(dict_)) {
     size_t status;
     if (TYPEOF(dict_) == RAWSXP) {
-      status = ZSTD_CCtx_loadDictionary(cctx, RAW(dict_), (size_t)length(dict_));
+      status = ZSTD_CCtx_loadDictionary(cctx, RAW(dict_), (size_t)Rf_length(dict_));
     } else if (TYPEOF(dict_) == STRSXP) {
       const char *filename = CHAR(STRING_ELT(dict_, 0));
       size_t fsize;
@@ -304,10 +304,10 @@ ZSTD_CCtx *init_cctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
       status = ZSTD_CCtx_loadDictionary(cctx, dict, fsize);
       free(dict);
     } else {
-      error("init_cctx(): 'dict' must be a raw vector or a filename");
+      Rf_error("init_cctx(): 'dict' must be a raw vector or a filename");
     }
     if (ZSTD_isError(status)) {
-      error("init_cctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
+      Rf_error("init_cctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
     }
   }
   
@@ -343,7 +343,7 @@ SEXP init_cctx_(SEXP opts_) {
 SEXP get_cctx_settings_(SEXP cctx_) {
   ZSTD_CCtx *cctx = external_ptr_to_zstd_cctx(cctx_);
   
-  SEXP res_ = PROTECT(allocVector(VECSXP, 3));
+  SEXP res_ = PROTECT(Rf_allocVector(VECSXP, 3));
   
   int level;
   int num_threads;
@@ -353,16 +353,16 @@ SEXP get_cctx_settings_(SEXP cctx_) {
   ZSTD_CCtx_getParameter(cctx, ZSTD_c_nbWorkers, &num_threads);
   ZSTD_CCtx_getParameter(cctx, ZSTD_c_checksumFlag, &include_checksum);
   
-  SET_VECTOR_ELT(res_, 0, ScalarInteger(level));
-  SET_VECTOR_ELT(res_, 1, ScalarInteger(num_threads));
-  SET_VECTOR_ELT(res_, 2, ScalarLogical(include_checksum));
+  SET_VECTOR_ELT(res_, 0, Rf_ScalarInteger(level));
+  SET_VECTOR_ELT(res_, 1, Rf_ScalarInteger(num_threads));
+  SET_VECTOR_ELT(res_, 2, Rf_ScalarLogical(include_checksum));
   
-  SEXP nms_ = PROTECT(allocVector(STRSXP, 3));
-  SET_STRING_ELT(nms_, 0, mkChar("level"));
-  SET_STRING_ELT(nms_, 1, mkChar("num_threads"));
-  SET_STRING_ELT(nms_, 2, mkChar("include_checksum"));
+  SEXP nms_ = PROTECT(Rf_allocVector(STRSXP, 3));
+  SET_STRING_ELT(nms_, 0, Rf_mkChar("level"));
+  SET_STRING_ELT(nms_, 1, Rf_mkChar("num_threads"));
+  SET_STRING_ELT(nms_, 2, Rf_mkChar("include_checksum"));
   
-  setAttrib(res_, R_NamesSymbol, nms_);
+  Rf_setAttrib(res_, R_NamesSymbol, nms_);
   
   UNPROTECT(2);
   return res_;

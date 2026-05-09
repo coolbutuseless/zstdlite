@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -43,10 +43,10 @@ typedef struct {
 // have to extract it first
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void write_byte_to_stream_file(R_outpstream_t stream, int c) {
-  error("write_byte_to_stream_file(): Writing single byte is unsupported\n");
+  Rf_error("write_byte_to_stream_file(): Writing single byte is unsupported\n");
   // stream_file_buffer_t *buf = (stream_file_buffer_t *)stream->data;
   // if (buf->uncompressed_pos == INSIZE) {
-  //   error("write_byte_to_stream(): Buffer exceeded");
+  //   Rf_error("write_byte_to_stream(): Buffer exceeded");
   // }
   // buf->uncompressed_data[buf->uncompressed_pos++] = (unsigned char)c;
 }
@@ -145,7 +145,7 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP cctx_, SEXP opts_) 
   const char *filename = CHAR(STRING_ELT(file_, 0));
   FILE *fp = fopen(filename, "wb");
   if (fp == NULL) {
-    error("zstd_serialize_stream_file_(): Couldn't open output file '%s'", filename);
+    Rf_error("zstd_serialize_stream_file_(): Couldn't open output file '%s'", filename);
   }
   
   
@@ -164,7 +164,7 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP cctx_, SEXP opts_) 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (isNull(cctx_)) {
+  if (Rf_isNull(cctx_)) {
     buf.cctx = init_cctx_with_opts(opts_, 0, 0);
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
@@ -176,7 +176,7 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP cctx_, SEXP opts_) 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, (unsigned long long)num_serialized_bytes);
   if (ZSTD_isError(res)) {
-    error("zstd_serialize_stream_file(): Error on pledge size\n");
+    Rf_error("zstd_serialize_stream_file(): Error on pledge size\n");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -227,7 +227,7 @@ SEXP zstd_serialize_stream_file_(SEXP robj, SEXP file_, SEXP cctx_, SEXP opts_) 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (isNull(cctx_)) ZSTD_freeCCtx(buf.cctx);
+  if (Rf_isNull(cctx_)) ZSTD_freeCCtx(buf.cctx);
   fclose(fp);
   return R_NilValue;
 }

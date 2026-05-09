@@ -1,5 +1,5 @@
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -88,5 +88,5 @@ int calc_serialized_size(SEXP robj) {
 // Serialize an R object, but ony count the bytes. R shim function
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP calc_serialized_size_(SEXP robj) {
-  return ScalarInteger(calc_serialized_size(robj));
+  return Rf_ScalarInteger(calc_serialized_size(robj));
 }

@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -38,7 +38,7 @@ SEXP zstd_decompress_stream_file_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_)
   // Setup the Decompression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
-  if (!isNull(dctx_)) {
+  if (!Rf_isNull(dctx_)) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   } else {
     dctx = init_dctx_with_opts(opts_, 0, 0); // Streaming does NOT have stable buffers
@@ -50,7 +50,7 @@ SEXP zstd_decompress_stream_file_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_)
   const char *filename = CHAR(STRING_ELT(src_, 0));
   FILE *fp = fopen(filename, "rb");
   if (fp == NULL) {
-    error("zstd_unserialize_stream_file(): Couldn't open input file '%s'", filename);
+    Rf_error("zstd_unserialize_stream_file(): Couldn't open input file '%s'", filename);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,11 +61,11 @@ SEXP zstd_decompress_stream_file_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_)
   fseek(fp, 0, SEEK_SET);  // same as rewind(f); 
   if (bytes_read != 18) {
     fclose(fp);
-    error("zstd_decompress_stream_file_(): Couldn't read file '%s' to determine uncompressed size", filename);
+    Rf_error("zstd_decompress_stream_file_(): Couldn't read file '%s' to determine uncompressed size", filename);
   }
   size_t uncompressed_size = ZSTD_getFrameContentSize(file_buf, 18);
   if (ZSTD_isError(uncompressed_size)) {
-    error("zstd_decompress_stream_file_(): Could not determine uncompressed size");
+    Rf_error("zstd_decompress_stream_file_(): Could not determine uncompressed size");
   }
   
   
@@ -76,10 +76,10 @@ SEXP zstd_decompress_stream_file_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_)
   unsigned char *dst;
   
   if (return_raw) {
-    dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)uncompressed_size));
+    dst_ = PROTECT(Rf_allocVector(RAWSXP, (R_xlen_t)uncompressed_size));
     dst = (void *)RAW(dst_);
   } else {
-    dst_ = PROTECT(allocVector(STRSXP, 1));
+    dst_ = PROTECT(Rf_allocVector(STRSXP, 1));
     dst = (unsigned char *)malloc(uncompressed_size + 1);
     dst[uncompressed_size] = 0; // Add "\0" terminator to string
   }  
@@ -108,7 +108,7 @@ SEXP zstd_decompress_stream_file_(SEXP src_, SEXP type_, SEXP dctx_, SEXP opts_)
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   fclose(fp);
-  if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
+  if (Rf_isNull(dctx_)) ZSTD_freeDCtx(dctx);
   UNPROTECT(1);
   return dst_;
 }
