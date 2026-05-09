@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -35,7 +35,7 @@ typedef struct {
 // Write a byte into the buffer at the current location.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void write_byte_to_stream(R_outpstream_t stream, int c) {
-  error("write_byte_to_stream(): Not implemented");
+  Rf_error("write_byte_to_stream(): Not implemented");
 }
 
 
@@ -129,7 +129,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Initialize the ZSTD context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (isNull(cctx_)) {
+  if (Rf_isNull(cctx_)) {
     buf.cctx = init_cctx_with_opts(opts_, 0, 0);  // streaming does NOT have stable buffers.
   } else {
     buf.cctx = external_ptr_to_zstd_cctx(cctx_);
@@ -140,7 +140,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t res = ZSTD_CCtx_setPledgedSrcSize(buf.cctx, num_serialized_bytes);
   if (ZSTD_isError(res)) {
-    error("zstd_serialize_stream(): Error on pledge size\n");
+    Rf_error("zstd_serialize_stream(): Error on pledge size\n");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,7 +148,8 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   // Allocate compression buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t max_compressed_bytes  = ZSTD_compressBound(num_serialized_bytes);
-  SEXP dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)max_compressed_bytes));
+  int nprotect = 0;
+  SEXP dst_ = PROTECT(Rf_allocVector(RAWSXP, (R_xlen_t)max_compressed_bytes)); nprotect++;
   char *dst = (char *)RAW(dst_);
 
   
@@ -192,7 +193,7 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
   do {
     remaining_bytes = ZSTD_compressStream2(buf.cctx, &(buf.zstd_buffer), &input, ZSTD_e_end);
     if (ZSTD_isError(remaining_bytes)) {
-      error("zstd_compress() [end]: Compression error. %s", ZSTD_getErrorName(remaining_bytes));
+      Rf_error("zstd_compress() [end]: Compression error. %s", ZSTD_getErrorName(remaining_bytes));
     }
   } while (remaining_bytes > 0);
   
@@ -203,20 +204,17 @@ SEXP zstd_serialize_stream_(SEXP robj, SEXP cctx_, SEXP opts_) {
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Truncate the user-viewable size of the RAW vector
-  // Requires: R_VERSION >= R_Version(3, 4, 0)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (num_compressed_bytes < max_compressed_bytes) {
-    SETLENGTH(dst_, (R_xlen_t)num_compressed_bytes);
-    SET_TRUELENGTH(dst_, (R_xlen_t)max_compressed_bytes);
-    SET_GROWABLE_BIT(dst_);
+    dst_ = PROTECT(Rf_lengthgets(dst_, num_compressed_bytes)); nprotect++;
   }
   
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (isNull(cctx_)) ZSTD_freeCCtx(buf.cctx);
-  UNPROTECT(1);
+  if (Rf_isNull(cctx_)) ZSTD_freeCCtx(buf.cctx);
+  UNPROTECT(nprotect);
   return dst_;
 }
 

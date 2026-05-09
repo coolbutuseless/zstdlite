@@ -45,14 +45,6 @@ and is included under its BSD license (compatible with the MIT license for this 
 
 ## What's in the box
 
-* `zstdfile()`
-    * A connection object (like `gzfile()` or `url()`) which supports Zstandard 
-      compressed data.
-    * Supports read/write of both text and binary data.  e.g. `readLines()` and 
-      `readBin()`
-    * Can be used by any R code which supports connections.
-    * Like `gzcon()`, `zstdfile()` can also write to other connections.
-        * e.g. `zstdfile(fifo("out"))`
 * `zstd_serialize()` and `zstd_unserialize()` 
     * convert arbitrary R objects to/from a compressed representation
     * this is equivalent to base R's `serialize()`/`unserialize()` with the addition
@@ -119,18 +111,6 @@ head(compressed_bytes, 100)
 zstd_unserialize(compressed_bytes) 
 ```
 
-
-## Using a `zstdfile()` connection
-
-Use `zstdfile()` to allow read/write access of compressed data from any R code
-or package which supports connections.
-
-```{r}
-tmp <- tempfile()
-dat <- as.raw(1:255)
-writeBin(dat, zstdfile(tmp))
-readBin(zstdfile(tmp), raw(), 255)
-```
 
 
 ## Using contexts to set compression arguments
@@ -297,6 +277,3 @@ cat("Compression ratio with dictionary:", round(s0/s2, 1), "\n")
 
 * Yann Collett for creating 
 [lz4](https://github.com/lz4/lz4) and [zstd](https://github.com/facebook/zstd)
-* R Core for developing and maintaining such a wonderful language.
-* CRAN maintainers, for patiently shepherding packages onto CRAN and maintaining
-  the repository

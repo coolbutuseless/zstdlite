@@ -1,5 +1,5 @@
 
-
+#define R_NO_REMAP
 
 
 #include <R.h>
@@ -25,7 +25,7 @@ ZSTD_DCtx * external_ptr_to_zstd_dctx(SEXP dctx_) {
     }
   }
   
-  error("ZSTD_DCtx pointer is invalid/NULL.");
+  Rf_error("ZSTD_DCtx pointer is invalid/NULL.");
   return NULL;
 }
 
@@ -98,7 +98,7 @@ static void zstd_dctx_finalizer(SEXP dctx_) {
 void dctx_set_stable_buffers(ZSTD_DCtx *dctx) {
   size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_stableOutBuffer, 1);
   if (ZSTD_isError(res)) {
-    error("zstd_decompress_(): Could not set 'ZSTD_d_stableOutBuffer'");
+    Rf_error("zstd_decompress_(): Could not set 'ZSTD_d_stableOutBuffer'");
   }
 }
 
@@ -118,7 +118,7 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx = ZSTD_createDCtx();
   if (dctx == NULL) {
-    error("init_dctx(): Couldn't initialse memory for 'dctx'");
+    Rf_error("init_dctx(): Couldn't initialse memory for 'dctx'");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,54 +131,57 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Short circuit if no opts
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (length(opts_) == 0) {
+  if (Rf_length(opts_) == 0) {
     return dctx;
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Sanity check
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNewList(opts_)) {
-    error("'opts_' must be a list");
+  if (!Rf_isNewList(opts_)) {
+    ZSTD_freeDCtx(dctx);
+    Rf_error("'opts_' must be a list");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack names
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  SEXP nms_ = getAttrib(opts_, R_NamesSymbol);
-  if (isNull(nms_)) {
-    error("'opts_' must be a named list");
+  SEXP nms_ = Rf_getAttrib(opts_, R_NamesSymbol);
+  if (Rf_isNull(nms_)) {
+    ZSTD_freeDCtx(dctx);
+    Rf_error("'opts_' must be a named list");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Parse options from user
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  for (int i = 0; i < length(opts_); i++) {
+  for (int i = 0; i < Rf_length(opts_); i++) {
     const char *opt_name = CHAR(STRING_ELT(nms_, i));
     SEXP val_ = VECTOR_ELT(opts_, i);
     
     if (strcmp(opt_name, "validate_checksum") == 0) {
-      int validate_checksum = asInteger(val_);
+      int validate_checksum = Rf_asInteger(val_);
       if (!validate_checksum) {
         size_t res = ZSTD_DCtx_setParameter(dctx, ZSTD_d_forceIgnoreChecksum, 1);
         if (ZSTD_isError(res)) {
-          error("init_dctx(): Could not set 'ZSTD_d_forceIgnoreChecksum'");
+          ZSTD_freeDCtx(dctx);
+          Rf_error("init_dctx(): Could not set 'ZSTD_d_forceIgnoreChecksum'");
         } 
       }
     } else if (strcmp(opt_name, "dict") == 0) {
       dict_ = val_;
     } else {
-      if (!quiet) warning("init_dctx(): Unknown option '%s'", opt_name);
+      if (!quiet) Rf_warning("init_dctx(): Unknown option '%s'", opt_name);
     }
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Handle dictionary
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNull(dict_)) {
+  if (!Rf_isNull(dict_)) {
     size_t status;
     if (TYPEOF(dict_) == RAWSXP) {
-      status = ZSTD_DCtx_loadDictionary(dctx, RAW(dict_), (size_t)length(dict_));
+      status = ZSTD_DCtx_loadDictionary(dctx, RAW(dict_), (size_t)Rf_length(dict_));
     } else if (TYPEOF(dict_) == STRSXP) {
       const char *filename = CHAR(STRING_ELT(dict_, 0));
       size_t fsize;
@@ -186,10 +189,12 @@ ZSTD_DCtx *init_dctx_with_opts(SEXP opts_, int stable_buffers, int quiet) {
       status = ZSTD_DCtx_loadDictionary(dctx, dict, fsize);
       free(dict);
     } else {
-      error("init_dctx(): 'dict' must be a raw vector or a filename");
+      ZSTD_freeDCtx(dctx);
+      Rf_error("init_dctx(): 'dict' must be a raw vector or a filename");
     }
     if (ZSTD_isError(status)) {
-      error("init_dctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
+      ZSTD_freeDCtx(dctx);
+      Rf_error("init_dctx(): Error initialising dict. %s", ZSTD_getErrorName(status));
     }
   }
   
@@ -228,17 +233,17 @@ SEXP init_dctx_(SEXP opts_) {
 SEXP get_dctx_settings_(SEXP dctx_) {
   ZSTD_DCtx *dctx = external_ptr_to_zstd_dctx(dctx_);
   
-  SEXP res_ = PROTECT(allocVector(VECSXP, 1));
+  SEXP res_ = PROTECT(Rf_allocVector(VECSXP, 1));
   
   int validate_checksum;
   ZSTD_DCtx_getParameter(dctx, ZSTD_d_forceIgnoreChecksum, &validate_checksum);
   
-  SET_VECTOR_ELT(res_, 0, ScalarLogical(validate_checksum));
+  SET_VECTOR_ELT(res_, 0, Rf_ScalarLogical(validate_checksum));
   
-  SEXP nms_ = PROTECT(allocVector(STRSXP, 1));
-  SET_STRING_ELT(nms_, 0, mkChar("validate_checksum"));
+  SEXP nms_ = PROTECT(Rf_allocVector(STRSXP, 1));
+  SET_STRING_ELT(nms_, 0, Rf_mkChar("validate_checksum"));
   
-  setAttrib(res_, R_NamesSymbol, nms_);
+  Rf_setAttrib(res_, R_NamesSymbol, nms_);
   
   UNPROTECT(2);
   return res_;

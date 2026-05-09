@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -30,19 +30,19 @@ SEXP zstd_dict_id_(SEXP src_) {
   
   if (TYPEOF(src_) == RAWSXP) {
     src = (void *)RAW(src_);
-    src_size = (size_t)length(src_);
+    src_size = (size_t)Rf_length(src_);
   } else if (TYPEOF(src_) == STRSXP) {
     const char *filename = CHAR(STRING_ELT(src_, 0));
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
-      error("zstd_dict_id_for_buffer_() couldn't open file '%s'", filename);
+      Rf_error("zstd_dict_id_for_buffer_() couldn't open file '%s'", filename);
     }
     size_t bytes_read = fread(buf, 1, sizeof(buf), fp);
     fclose(fp);
     src = buf;
     src_size = bytes_read;
   } else {
-    error("zstd_dict_id_for_buffer_(): Currently only supports files and raw vector input");
+    Rf_error("zstd_dict_id_for_buffer_(): Currently only supports files and raw vector input");
   } 
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,7 +54,7 @@ SEXP zstd_dict_id_(SEXP src_) {
     id = ZDICT_getDictID(src, src_size);
   }
   
-  return ScalarInteger((int32_t)id);
+  return Rf_ScalarInteger((int32_t)id);
 }
 
 
@@ -80,15 +80,15 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack and sanity check args
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNewList(samples_)) {
-    error("zstd_train_dictionary(): samples must be provided as a list of raw vectors or character strings");
+  if (!Rf_isNewList(samples_)) {
+    Rf_error("zstd_train_dictionary(): samples must be provided as a list of raw vectors or character strings");
   }
   
-  size_t dictBufferCapacity = (size_t)asInteger(size_);
-  uint32_t nbSamples = (uint32_t)length(samples_);
+  size_t dictBufferCapacity = (size_t)Rf_asInteger(size_);
+  uint32_t nbSamples = (uint32_t)Rf_length(samples_);
   
   if (nbSamples == 0) {
-    error("zstd_train_dictionary(): No samples provided");
+    Rf_error("zstd_train_dictionary(): No samples provided");
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -98,20 +98,20 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   for (uint32_t i = 0; i < nbSamples; i++) {
     SEXP elem_ = VECTOR_ELT(samples_, i);
     if (TYPEOF(elem_) == RAWSXP) {
-      if (length(elem_) < 8) {
-        error("zstd_train_dictionary(): When samples are raw vectors, all vector lengths must be >= 8 bytes");
+      if (Rf_length(elem_) < 8) {
+        Rf_error("zstd_train_dictionary(): When samples are raw vectors, all vector lengths must be >= 8 bytes");
       }
-      total_len += (size_t)length(elem_);
+      total_len += (size_t)Rf_length(elem_);
     } else if (TYPEOF(elem_) == STRSXP) {
-      if (length(elem_) != 1) {
-        warning("zstd_train_dictionary(): When samples are a list of character vectors, each vector must only contain a single string");
+      if (Rf_length(elem_) != 1) {
+        Rf_warning("zstd_train_dictionary(): When samples are a list of character vectors, each vector must only contain a single string");
       }
       total_len += (size_t)strlen(CHAR(STRING_ELT(elem_, 0)));
     }
   }
   
   if (total_len < 100 * dictBufferCapacity) {
-    warning("zstd_train_dictionary() ZSTD documentation recommends training data size 100x dictionary size.\nOnly supplied with %.1fx", (double)total_len / (double)dictBufferCapacity);
+    Rf_warning("zstd_train_dictionary() ZSTD documentation recommends training data size 100x dictionary size.\nOnly supplied with %.1fx", (double)total_len / (double)dictBufferCapacity);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,21 +119,22 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   unsigned char *samplesBuffer = (unsigned char *)malloc(total_len);
   if (samplesBuffer == NULL) {
-    error("zstd_train_dictionary(): Could not allocate %zu bytes for 'samplesBuffer'", total_len);
+    Rf_error("zstd_train_dictionary(): Could not allocate %zu bytes for 'samplesBuffer'", total_len);
   }
   size_t *samplesSizes = (size_t *)calloc(nbSamples, sizeof(size_t));
   if (samplesSizes == NULL) {
-    error("zstd_train_dictionary(): Could not allocate %i * %zu = %zu bytes for 'samplesSizes'", nbSamples, sizeof(size_t), nbSamples * sizeof(size_t));
+    Rf_error("zstd_train_dictionary(): Could not allocate %i * %zu = %zu bytes for 'samplesSizes'", nbSamples, sizeof(size_t), nbSamples * sizeof(size_t));
   }
 
-  SEXP dictBuffer_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dictBufferCapacity));
+  int nprotect = 0;
+  SEXP dictBuffer_ = PROTECT(Rf_allocVector(RAWSXP, (R_xlen_t)dictBufferCapacity)); nprotect++;
   unsigned char *dictBuffer = (unsigned char *)RAW(dictBuffer_);
 
   size_t pos = 0;
-  for (uint32_t i = 0; i < length(samples_); i++) {
+  for (uint32_t i = 0; i < Rf_length(samples_); i++) {
     SEXP elem_ = VECTOR_ELT(samples_, i);
     if (TYPEOF(elem_) == RAWSXP) {
-      size_t len = (size_t)length(elem_);
+      size_t len = (size_t)Rf_length(elem_);
       samplesSizes[i] = len;
       memcpy(samplesBuffer + pos, RAW(elem_), len);
       pos += len;
@@ -151,7 +152,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t actual_dict_size;
   
-  if (!asLogical(optim_)) {
+  if (!Rf_asLogical(optim_)) {
     actual_dict_size  = ZDICT_trainFromBuffer((void *)dictBuffer, dictBufferCapacity, (void *)samplesBuffer, samplesSizes, nbSamples);
   } else {
     
@@ -190,7 +191,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
     //
     ZDICT_cover_params_t params;
     memset(&params, 0, sizeof(params));
-    uint32_t optim_shrink_allow  = (uint32_t)asInteger(optim_shrink_allow_);
+    uint32_t optim_shrink_allow  = (uint32_t)Rf_asInteger(optim_shrink_allow_);
     if (optim_shrink_allow > 0) {
       params.shrinkDict = 1;
       params.shrinkDictMaxRegression = optim_shrink_allow;
@@ -204,7 +205,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
     free(samplesBuffer);
     free(samplesSizes);
     UNPROTECT(1);
-    error("zstd_train_dictionary() Training error %s", ZDICT_getErrorName(actual_dict_size));
+    Rf_error("zstd_train_dictionary() Training error %s", ZDICT_getErrorName(actual_dict_size));
   }
   
   
@@ -214,13 +215,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (actual_dict_size < dictBufferCapacity) {
     // Rprintf("zstd_train_dictionary() Note: dict only used %i / %i bytes\n", actual_dict_size, dictBufferCapacity);
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // Truncate the user-viewable size of the RAW vector
-    // Requires: R_VERSION >= R_Version(3, 4, 0)
-    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    SETLENGTH(dictBuffer_, (R_xlen_t)actual_dict_size);
-    SET_TRUELENGTH(dictBuffer_, (R_xlen_t)dictBufferCapacity);
-    SET_GROWABLE_BIT(dictBuffer_);
+    dictBuffer_ = PROTECT(Rf_lengthgets(dictBuffer_, actual_dict_size)); nprotect++;
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,7 +223,7 @@ SEXP zstd_train_dictionary_(SEXP samples_, SEXP size_, SEXP optim_, SEXP optim_s
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   free(samplesBuffer);
   free(samplesSizes);
-  UNPROTECT(1);
+  UNPROTECT(nprotect);
   return dictBuffer_;
 }
 

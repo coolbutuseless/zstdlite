@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -33,13 +33,13 @@ SEXP zstd_info_(SEXP src_) {
     src = read_partial_file(filename, max_bytes, &src_size);
   } else if (TYPEOF(src_) == RAWSXP) {
     src      = RAW(src_);
-    src_size = (size_t)length(src_);
+    src_size = (size_t)Rf_length(src_);
   } else {
-    error("zstd_info_() currently only accepts raw vectors or filenames");
+    Rf_error("zstd_info_() currently only accepts raw vectors or filenames");
   }
   
   if (src_size < 18) {
-    // warning("zstd_info_() probably not Zstandard compressed data");
+    // Rf_warning("zstd_info_() probably not Zstandard compressed data");
     return R_NilValue;
   }
   
@@ -60,7 +60,7 @@ SEXP zstd_info_(SEXP src_) {
   ZSTD_frameHeader fh;
   size_t res = ZSTD_getFrameHeader(&fh, src, src_size);
   if (ZSTD_isError(res)) {
-    // warning("zstd_info_() probably not Zstandard compressed data (Error: %s)", ZSTD_getErrorName(res));
+    // Rf_warning("zstd_info_() probably not Zstandard compressed data (Error: %s)", ZSTD_getErrorName(res));
     return R_NilValue;
   }
   
@@ -69,22 +69,22 @@ SEXP zstd_info_(SEXP src_) {
   // Create a list to return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define NINFO 4
-  SEXP res_ = PROTECT(allocVector(VECSXP, NINFO));
-  SEXP nms_ = PROTECT(allocVector(STRSXP, NINFO));
+  SEXP res_ = PROTECT(Rf_allocVector(VECSXP, NINFO));
+  SEXP nms_ = PROTECT(Rf_allocVector(STRSXP, NINFO));
   
-  SET_VECTOR_ELT(res_, 0, ScalarReal((double)fh.frameContentSize));
-  SET_STRING_ELT(nms_, 0, mkChar("uncompressed_size"));
+  SET_VECTOR_ELT(res_, 0, Rf_ScalarReal((double)fh.frameContentSize));
+  SET_STRING_ELT(nms_, 0, Rf_mkChar("uncompressed_size"));
   
-  SET_VECTOR_ELT(res_, 1, ScalarInteger(src_size));
-  SET_STRING_ELT(nms_, 1, mkChar("compressed_size"));
+  SET_VECTOR_ELT(res_, 1, Rf_ScalarInteger(src_size));
+  SET_STRING_ELT(nms_, 1, Rf_mkChar("compressed_size"));
   
-  SET_VECTOR_ELT(res_, 2, ScalarInteger((int)fh.dictID));
-  SET_STRING_ELT(nms_, 2, mkChar("dict_id"));
+  SET_VECTOR_ELT(res_, 2, Rf_ScalarInteger((int)fh.dictID));
+  SET_STRING_ELT(nms_, 2, Rf_mkChar("dict_id"));
   
-  SET_VECTOR_ELT(res_, 3, ScalarLogical((int)fh.checksumFlag));
-  SET_STRING_ELT(nms_, 3, mkChar("has_checksum"));
+  SET_VECTOR_ELT(res_, 3, Rf_ScalarLogical((int)fh.checksumFlag));
+  SET_STRING_ELT(nms_, 3, Rf_mkChar("has_checksum"));
 
-  setAttrib(res_, R_NamesSymbol, nms_);
+  Rf_setAttrib(res_, R_NamesSymbol, nms_);
   
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

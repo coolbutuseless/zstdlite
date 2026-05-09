@@ -1,3 +1,8 @@
+
+# zstdlite 0.2.11 2026-05-08
+
+* Removed `zstdfile()` as connection API in R4.6.0 is too limited to support it.
+
 # zstdlite 0.2.10 2024-04-16
 
 * Added `zstd_info()` to return information about a compressed data stream.

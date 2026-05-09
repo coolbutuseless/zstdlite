@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -24,7 +24,7 @@
 // ZSTDLIB_API const char* ZSTD_versionString(void)
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 SEXP zstd_version_(void) {
-  return mkString(ZSTD_versionString());
+  return Rf_mkString(ZSTD_versionString());
 }
 
 
@@ -36,7 +36,7 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // If 'file_' is set, then use streaming interface
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNull(file_) && asLogical(use_file_streaming_)) {
+  if (!Rf_isNull(file_) && Rf_asLogical(use_file_streaming_)) {
     return zstd_serialize_stream_file_(robj_, file_, cctx_, opts_);
   }
   
@@ -71,14 +71,15 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   // And allocate the buffer
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t dstCapacity  = ZSTD_compressBound(src_size);
-  SEXP dst_ = PROTECT(allocVector(RAWSXP, (R_xlen_t)dstCapacity));
+  int nprotect = 0;
+  SEXP dst_ = PROTECT(Rf_allocVector(RAWSXP, (R_xlen_t)dstCapacity)); nprotect++;
   char *dst = (char *)RAW(dst_);
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Compression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_CCtx* cctx;
-  if (isNull(cctx_)) {
+  if (Rf_isNull(cctx_)) {
     cctx = init_cctx_with_opts(opts_, 1, 0); // stable_buffers = 1
   } else {
     cctx = external_ptr_to_zstd_cctx(cctx_);
@@ -89,13 +90,15 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   // Compress
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
   size_t num_compressed_bytes = ZSTD_compress2(cctx, dst, dstCapacity, buf->data, src_size);
-  if (isNull(cctx_))  {
+  if (Rf_isNull(cctx_))  {
     ZSTD_freeCCtx(cctx);
   } else {
     cctx_unset_stable_buffers(cctx);
   }
   if (ZSTD_isError(num_compressed_bytes)) {
-    error("zstd_serialize_(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
+    free(buf->data);
+    free(buf);
+    Rf_error("zstd_serialize_(): Compression error. %s", ZSTD_getErrorName(num_compressed_bytes));
   }
 
   
@@ -103,17 +106,21 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   // Write to file here if user specified a filename, 
   // but did not request 'use_file_streaming'
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  if (!isNull(file_)) {
+  if (!Rf_isNull(file_)) {
     const char *filename = CHAR(STRING_ELT(file_, 0));
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL) {
-      error("zstd_serialize_(): Couldn't open file for output '%s'", filename);
+      free(buf->data);
+      free(buf);
+      Rf_error("zstd_serialize_(): Couldn't open file for output '%s'", filename);
     }
     size_t num_written = fwrite(dst, 1, num_compressed_bytes, fp);
     fclose(fp);
     if (num_written != num_compressed_bytes) {
-      warning("zstd_serialize_(): File '%s' only wrote %zu/%zu bytes", filename, num_written, num_compressed_bytes);
+      Rf_warning("zstd_serialize_(): File '%s' only wrote %zu/%zu bytes", filename, num_written, num_compressed_bytes);
     }
+    free(buf->data);
+    free(buf);
     UNPROTECT(1);
     return R_NilValue;
   }
@@ -123,12 +130,9 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Truncate the user-viewable size of the RAW vector
-  // Requires: R_VERSION >= R_Version(3, 4, 0)
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (num_compressed_bytes < dstCapacity) {
-    SETLENGTH(dst_, (R_xlen_t)num_compressed_bytes);
-    SET_TRUELENGTH(dst_, (R_xlen_t)dstCapacity);
-    SET_GROWABLE_BIT(dst_);
+    dst_ = PROTECT(Rf_lengthgets(dst_, num_compressed_bytes)); nprotect++;
   }
 
   
@@ -137,7 +141,7 @@ SEXP zstd_serialize_(SEXP robj_, SEXP file_, SEXP cctx_, SEXP opts_, SEXP use_fi
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   free(buf->data);
   free(buf);
-  UNPROTECT(1);
+  UNPROTECT(nprotect);
   return dst_;
 }
 
@@ -154,14 +158,14 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   unsigned char *src;
   size_t src_size;
   if (TYPEOF(src_) == STRSXP) {
-    if (asLogical(use_file_streaming_)) {
+    if (Rf_asLogical(use_file_streaming_)) {
       return zstd_unserialize_stream_file_(src_, dctx_, opts_);
     } else {
       src = read_file(CHAR(STRING_ELT(src_, 0)), &src_size);
     }
   } else {
     src = RAW(src_);
-    src_size = (size_t)length(src_);
+    src_size = (size_t)Rf_length(src_);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -177,14 +181,14 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   size_t dstCapacity = ZSTD_getFrameContentSize(src, compressedSize);
   void *dst = malloc(dstCapacity);
   if (dst == NULL) {
-    error("zstd_unserialize(): Could not allocation decompression buffer\n");
+    Rf_error("zstd_unserialize(): Could not allocation decompression buffer\n");
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Decompression context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
-  if (isNull(dctx_)) {
+  if (Rf_isNull(dctx_)) {
     dctx = init_dctx_with_opts(opts_, 1, 0);  // Has a stable buffer
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
@@ -196,7 +200,9 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   size_t status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
   if (ZSTD_isError(status)) {
-    error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
+    free(dst);
+    if (Rf_isNull(dctx_)) ZSTD_freeDCtx(dctx);
+    Rf_error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -235,6 +241,8 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
     // We decoded from a file buffer. Free the buffer
     free(src);
   }
+  free(dst);
+  if (Rf_isNull(dctx_)) ZSTD_freeDCtx(dctx);
   UNPROTECT(1);
   return res_;
 }

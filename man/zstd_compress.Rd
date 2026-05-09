@@ -23,10 +23,8 @@ character string}
 context initializers. 
 Note: These argument are only used when \code{cctx} or \code{dctx} is NULL}
 
-\item{dst}{destination in which to write the compressed data. If \code{NULL}
-(the default) data will be returned as a raw vector.  If a string, 
-then this will be the filename to which the data is written.  \code{dst}
-may also be a connection object e.g. \code{pipe()}, \code{file()} etc.}
+\item{dst}{destination filename in which to write the compressed data. If \code{NULL}
+(the default) data will be returned as a raw vector.}
 
 \item{cctx}{ZSTD Compression Context created by \code{zstd_cctx()} or NULL.
 Default: NULL will create a default compression context on-the-fly}
@@ -35,9 +33,7 @@ Default: NULL will create a default compression context on-the-fly}
 to a file?  This may reduce memory allocations
 and make better use of mutlithreading.  Default: FALSE}
 
-\item{src}{Source from which compressed data is read. If a string, 
-then this will be the filename to read data from.  \code{dst}
-may also be a connection object e.g. \code{pipe()}, \code{file()} etc.}
+\item{src}{Source filename from which compressed data is read.}
 
 \item{type}{Should data be returned as a 'raw' vector or as a 'string'? 
 Default: 'raw'}
@@ -63,9 +59,4 @@ zstd_decompress(src = vec)
 tmp <- tempfile()
 zstd_compress(x = dat, dst = tmp)
 zstd_decompress(src = tmp)
-
-# With connections
-tmp <- tempfile()
-zstd_compress(x = dat, dst = file(tmp))
-zstd_decompress(src = file(tmp))
 }

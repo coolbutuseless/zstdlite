@@ -1,3 +1,8 @@
+
+#include <R.h>
+#include <Rinternals.h>
+#include <Rdefines.h>
+
 /**
  * \file zstd.c
  * Single-file Zstandard library.
@@ -148,7 +153,7 @@
 #define ZSTD_DEPS_IO
 
 #include <stdio.h>
-#define ZSTD_DEBUG_PRINT(...) fprintf(stderr, __VA_ARGS__)
+#define ZSTD_DEBUG_PRINT(...) Rprintf(__VA_ARGS__)
 
 #endif /* ZSTD_DEPS_IO */
 #endif /* ZSTD_DEPS_NEED_IO */
@@ -12896,7 +12901,7 @@ XXH3_len_129to240_64b(const xxh_u8* XXH_RESTRICT input, size_t len,
          * _actually works_ because it is a loop vectorization instead of an
          * SLP vectorization.
          */
-        #pragma clang loop vectorize(disable)
+        # pragma clang loop vectorize(disable)
 #endif
         for (i=8 ; i < nbRounds; i++) {
             /*
@@ -45918,8 +45923,7 @@ static int g_displayLevel = 0;
 #undef  DISPLAY
 #define DISPLAY(...)                                                           \
   {                                                                            \
-    fprintf(stderr, __VA_ARGS__);                                              \
-    fflush(stderr);                                                            \
+    Rprintf(__VA_ARGS__);                                              \
   }
 #undef  LOCALDISPLAYLEVEL
 #define LOCALDISPLAYLEVEL(displayLevel, l, ...)                                \
@@ -47147,7 +47151,7 @@ ZDICTLIB_STATIC_API size_t ZDICT_optimizeTrainFromBuffer_cover(
 
 /*- Compiler specifics -*/
 #ifdef __clang__
-#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+# pragma clang diagnostic ignored "-Wshorten-64-to-32"
 #endif
 
 #if defined(_MSC_VER)
@@ -48697,13 +48701,13 @@ note:
     {
         buf = SA + m;
         c0 = ALPHABET_SIZE - 2, c1 = ALPHABET_SIZE - 1, j = m;
-#pragma omp parallel default(shared) private(bufsize, curbuf, k, l, d0, d1)
+# pragma omp parallel default(shared) private(bufsize, curbuf, k, l, d0, d1)
         {
           bufsize = (n - (2 * m)) / omp_get_num_threads();
           curbuf = buf + omp_get_thread_num() * bufsize;
           k = 0;
           for(;;) {
-            #pragma omp critical(sssort_lock)
+            # pragma omp critical(sssort_lock)
             {
               if(0 < (l = j)) {
                 d0 = c0, d1 = c1;
@@ -49160,8 +49164,7 @@ static int g_displayLevel = 0;
 #undef  DISPLAY
 #define DISPLAY(...)                                                           \
   {                                                                            \
-    fprintf(stderr, __VA_ARGS__);                                              \
-    fflush(stderr);                                                            \
+    Rprintf(__VA_ARGS__);                                              \
   }
 #undef  LOCALDISPLAYLEVEL
 #define LOCALDISPLAYLEVEL(displayLevel, l, ...)                                \
@@ -49946,7 +49949,7 @@ static const U32 g_selectivity_default = 9;
 *  Console display
 ***************************************/
 #undef  DISPLAY
-#define DISPLAY(...)         do { fprintf(stderr, __VA_ARGS__); fflush( stderr ); } while (0)
+#define DISPLAY(...)         do { Rprintf(__VA_ARGS__); } while (0)
 #undef  DISPLAYLEVEL
 #define DISPLAYLEVEL(l, ...) do { if (notificationLevel>=l) { DISPLAY(__VA_ARGS__); } } while (0)    /* 0 : no display;   1: errors;   2: default;  3: details;  4: debug */
 
@@ -50356,7 +50359,7 @@ static size_t ZDICT_trainBuffer_legacy(dictItem* dictList, U32 dictListSize,
                     displayClock = clock();                        \
                     DISPLAY(__VA_ARGS__);                          \
                 }                                                  \
-                if (notificationLevel>=4) fflush(stderr);          \
+                if (notificationLevel>=4) {}          \
             }                                                      \
         } while (0)
 

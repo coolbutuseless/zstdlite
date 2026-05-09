@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -42,7 +42,7 @@ typedef struct {
 // this only seems to be used for ASCII mode?
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int read_byte_from_stream_file(R_inpstream_t stream) {
-  error("read_byte_from_stream_file(): Reading single byte is unsupported\n");
+  Rf_error("read_byte_from_stream_file(): Reading single byte is unsupported\n");
 }
 
 
@@ -89,7 +89,7 @@ void read_bytes_from_stream_file(R_inpstream_t stream, void *dst, int length) {
   while (output.pos < length) {
     size_t const status = ZSTD_decompressStream(buf->dctx, &output , &input);
     if (ZSTD_isError(status)) {
-      error("read_bytes_from_stream_file() error: %s", ZSTD_getErrorName(status));
+      Rf_error("read_bytes_from_stream_file() error: %s", ZSTD_getErrorName(status));
     }
     
     // Update the compressed data pointer to where we have decompressed up to
@@ -122,7 +122,7 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_, SEXP opts_) {
   // Setup the Decompression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
-  if (!isNull(dctx_)) {
+  if (!Rf_isNull(dctx_)) {
     dctx = external_ptr_to_zstd_dctx(dctx_);
   } else {
     dctx = init_dctx_with_opts(opts_, 0, 0); // Streaming does NOT have stable buffers
@@ -134,7 +134,7 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_, SEXP opts_) {
   const char *filename = CHAR(STRING_ELT(src_, 0));
   FILE *fp = fopen(filename, "rb");
   if (fp == NULL) {
-    error("zstd_unserialize_stream_file(): Couldn't open input file '%s'", filename);
+    Rf_error("zstd_unserialize_stream_file(): Couldn't open input file '%s'", filename);
   }
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -172,7 +172,7 @@ SEXP zstd_unserialize_stream_file_(SEXP src_, SEXP dctx_, SEXP opts_) {
   // Tidy and return
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   fclose(fp);
-  if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
+  if (Rf_isNull(dctx_)) ZSTD_freeDCtx(dctx);
   UNPROTECT(1);
   return res_;
 }

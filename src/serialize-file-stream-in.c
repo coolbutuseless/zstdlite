@@ -1,6 +1,6 @@
 
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -36,7 +36,7 @@ typedef struct {
 // Write a byte into the buffer at the current location.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int read_byte_from_stream(R_inpstream_t stream) {
-  error("read_byte_from_stream(): Reading single byte is unsupported\n");
+  Rf_error("read_byte_from_stream(): Reading single byte is unsupported\n");
 }
 
 
@@ -65,7 +65,7 @@ void read_bytes_from_stream(R_inpstream_t stream, void *dst, int length) {
   while (output.pos < length) {
     size_t const ret = ZSTD_decompressStream(buf->dctx, &output , &input);
     if (ZSTD_isError(ret)) {
-      error("read_bytes_from_stream() error: %s", ZSTD_getErrorName(ret));
+      Rf_error("read_bytes_from_stream() error: %s", ZSTD_getErrorName(ret));
     }
   }
   
@@ -84,7 +84,7 @@ SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_, SEXP opts_) {
   // Setup Decompression Context
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ZSTD_DCtx *dctx;
-  if (isNull(dctx_)) {
+  if (Rf_isNull(dctx_)) {
     dctx = init_dctx_with_opts(opts_, 0, 0); // Streaming does NOT have stable buffers
   } else {
     dctx = external_ptr_to_zstd_dctx(dctx_);
@@ -104,9 +104,9 @@ SEXP zstd_unserialize_stream_(SEXP src_, SEXP dctx_, SEXP opts_) {
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if (TYPEOF(src_) == RAWSXP) {
     user_data.compressed_data = (unsigned char *)RAW(src_);
-    user_data.compressed_size = (size_t)length(src_);
+    user_data.compressed_size = (size_t)Rf_length(src_);
   } else {
-    error("zstd_unserialize_stream_(): source must be a raw vector");
+    Rf_error("zstd_unserialize_stream_(): source must be a raw vector");
   }
 
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

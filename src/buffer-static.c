@@ -1,5 +1,5 @@
 
-
+#define R_NO_REMAP
 
 #include <R.h>
 #include <Rinternals.h>
@@ -28,12 +28,12 @@
 static_buffer_t *init_buffer(size_t nbytes) {
   static_buffer_t *buf = (static_buffer_t *)malloc(sizeof(static_buffer_t));
   if (buf == NULL) {
-    error("init_buffer(): cannot malloc buffer");
+    Rf_error("init_buffer(): cannot malloc buffer");
   }
 
   buf->data = (unsigned char *)malloc(nbytes * sizeof(unsigned char));
   if (buf->data == NULL) {
-    error("init_buffer(): cannot malloc buffer data");
+    Rf_error("init_buffer(): cannot malloc buffer data");
   }
 
   buf->length = nbytes;
@@ -50,7 +50,7 @@ static_buffer_t *init_buffer(size_t nbytes) {
 // have to extract it first
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void write_byte(R_outpstream_t stream, int c) {
-  error("write_byte(): This function unused in binary serialization.  Panic at the disco!");
+  Rf_error("write_byte(): This function unused in binary serialization.  Panic at the disco!");
   // static_buffer_t *buf = (static_buffer_t *)stream->data;
   // buf->data[buf->pos++] = (unsigned char)c;
 }
