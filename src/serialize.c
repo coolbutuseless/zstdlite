@@ -201,6 +201,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
   size_t status = ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, compressedSize);
   if (ZSTD_isError(status)) {
     free(dst);
+    if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
     error("zstd_unserialize(): De-compression error. %s", ZSTD_getErrorName(status));
   }
 
@@ -241,6 +242,7 @@ SEXP zstd_unserialize_(SEXP src_, SEXP dctx_, SEXP opts_, SEXP use_file_streamin
     free(src);
   }
   free(dst);
+  if (isNull(dctx_)) ZSTD_freeDCtx(dctx);
   UNPROTECT(1);
   return res_;
 }
